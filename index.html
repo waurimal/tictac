@@ -99,6 +99,7 @@
         #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
         @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
         @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
 
         /* 푸터 스타일 */
         footer {
@@ -257,6 +258,14 @@
         <button id="btn-leave" style="margin-top:20px; background-color:#95a5a6;">방 나가기</button>
     </div>
 
+    <!-- 4. 결과 화면 -->
+    <div class="container hidden" id="result-screen">
+        <div id="result-icon" style="font-size: 80px; margin: 20px 0; animation: bounce 1s infinite;">🏆</div>
+        <h1 id="result-title" style="font-size: 36px; margin-bottom: 10px;">게임 종료</h1>
+        <p id="result-message" style="font-size: 18px; font-weight: bold; margin-bottom: 30px; color: #555;"></p>
+        <button id="btn-back-to-lobby" class="btn-blue" style="padding: 16px; font-size: 18px;">대기실로 돌아가기</button>
+    </div>
+
     <div id="toast">메시지</div>
 
     <!-- 하단 제작자 정보 -->
@@ -292,7 +301,8 @@
             login: document.getElementById('login-screen'),
             teacher: document.getElementById('teacher-screen'),
             lobby: document.getElementById('lobby-screen'),
-            game: document.getElementById('game-screen')
+            game: document.getElementById('game-screen'),
+            result: document.getElementById('result-screen')
         };
         const cells = document.querySelectorAll('.cell');
         const toastEl = document.getElementById('toast');
@@ -672,6 +682,8 @@
             } else if (data.status === "finished") {
                 interactionPanel.innerHTML = "";
                 if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+                
+                // 보드 상단의 상태 우선 변경
                 if (data.winner === "draw") {
                     statusEl.innerText = "무승부! 게임이 종료되었습니다.";
                     statusEl.style.backgroundColor = "#e2e3e5";
@@ -682,6 +694,34 @@
                     statusEl.style.backgroundColor = data.winner === "blue" ? "#d4edda" : "#f8d7da";
                     statusEl.style.color = data.winner === "blue" ? "#155724" : "#721c24";
                 }
+                
+                // 1.5초 후 결과 화면으로 전환
+                setTimeout(() => {
+                    if (window.currentGameData && window.currentGameData.status === "finished") {
+                        const resIcon = document.getElementById('result-icon');
+                        const resMsg = document.getElementById('result-message');
+                        const resTitle = document.getElementById('result-title');
+
+                        if (data.winner === "draw") {
+                            resIcon.innerText = "🤝";
+                            resTitle.innerText = "무승부!";
+                            resMsg.innerText = "아쉽게도 승부를 가리지 못했습니다.";
+                            resTitle.style.color = "#383d41";
+                        } else {
+                            const winnerName = data.winner === "blue" ? data.player1.name : data.player2.name;
+                            const isMe = data.winner === myColor;
+                            resIcon.innerText = isMe ? "🏆" : "😭";
+                            resTitle.innerText = isMe ? "승리!" : "패배...";
+                            resMsg.innerText = `🎉 ${winnerName} 학생이 이겼습니다! 🎉`;
+                            resTitle.style.color = isMe ? "var(--blue-color)" : "var(--red-color)";
+                        }
+                        showScreen('result');
+                    }
+                }, 1500);
+                
+                // 로컬 변수에 데이터 캐싱
+                window.currentGameData = data;
+                return;
             } else if (data.status === "playing") {
                 if (data.turn === myColor) {
                     statusEl.innerText = "👉 나의 차례입니다.";
@@ -1058,6 +1098,8 @@
         document.getElementById('btn-leave').addEventListener('click', () => {
             if(confirm("정말 방을 나가시겠습니까?")) resetGame();
         });
+
+        document.getElementById('btn-back-to-lobby').addEventListener('click', resetGame);
 
         function resetGame() {
             if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
