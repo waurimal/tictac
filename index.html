@@ -40,34 +40,15 @@
             box-sizing: border-box;
             font-family: inherit;
         }
-        textarea {
-            font-size: 14px;
-            resize: vertical;
-        }
-        select {
-            width: 100%;
-            cursor: pointer;
-        }
-        .select-group { 
-            display: flex; 
-            gap: 10px; 
-            width: 100%; 
-        }
-        .select-group select { 
-            flex: 1; 
-        }
+        textarea { font-size: 14px; resize: vertical; }
+        select { width: 100%; cursor: pointer; }
+        .select-group { display: flex; gap: 10px; width: 100%; }
+        .select-group select { flex: 1; }
+        
         button { 
-            width: 100%;
-            padding: 14px; 
-            margin-top: 15px; 
-            cursor: pointer; 
-            background-color: #2c3e50; 
-            color: white; 
-            border: none; 
-            border-radius: 8px; 
-            font-size: 16px;
-            font-weight: bold; 
-            transition: background 0.2s;
+            width: 100%; padding: 14px; margin-top: 15px; cursor: pointer; 
+            background-color: #2c3e50; color: white; border: none; 
+            border-radius: 8px; font-size: 16px; font-weight: bold; transition: background 0.2s;
         }
         button:hover { background-color: #1a252f; }
         .btn-blue { background-color: var(--blue-color); }
@@ -75,70 +56,42 @@
         .btn-red { background-color: var(--red-color); }
         .btn-red:hover { background-color: #C0392B; }
 
-        /* 게임 화면 관련 */
         #game-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 8px;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 8px;
         }
         .player-badge { padding: 5px 10px; border-radius: 20px; color: white; font-size: 14px; font-weight: bold;}
         .badge-blue { background-color: var(--blue-color); }
         .badge-red { background-color: var(--red-color); }
 
         #room-code-display { font-size: 20px; font-weight: bold; letter-spacing: 2px; color: #2c3e50; margin-bottom: 10px; }
-        #turn-status { font-size: 18px; font-weight: bold; margin: 15px 0; padding: 10px; border-radius: 8px; transition: all 0.3s;}
+        #turn-status { font-size: 16px; font-weight: bold; margin: 10px 0; padding: 10px; border-radius: 8px; transition: all 0.3s;}
 
-        #board { 
-            display: grid; 
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 10px; 
-            margin-top: 20px; 
-        }
+        #interaction-panel { margin: 15px 0; }
+        .q-item { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; text-align: left; background:#fff; transition: background 0.2s; border-radius: 5px; margin-bottom: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .q-item:hover { background: #f1f8ff; border-left: 4px solid var(--blue-color); }
+
+        #board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
         .cell { 
-            aspect-ratio: 1 / 1; 
-            border: none; 
-            border-radius: 12px;
-            background-color: #edf2f7; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 40px; 
-            cursor: pointer; 
-            box-shadow: inset 0 -4px 0 rgba(0,0,0,0.05);
-            transition: transform 0.1s, background-color 0.3s;
+            aspect-ratio: 1 / 1; border: none; border-radius: 12px;
+            background-color: #edf2f7; display: flex; align-items: center; 
+            justify-content: center; font-size: 40px; cursor: pointer; 
+            box-shadow: inset 0 -4px 0 rgba(0,0,0,0.05); transition: transform 0.1s, background-color 0.3s;
         }
         .cell:active { transform: translateY(2px); box-shadow: inset 0 -2px 0 rgba(0,0,0,0.05); }
         .cell.blue { background-color: var(--blue-color); color: white; }
         .cell.red { background-color: var(--red-color); color: white; }
         
-        .instruction { font-size: 13px; color: #666; margin-top: 15px; background: #eef; padding: 10px; border-radius: 8px;}
-
-        /* 커스텀 모달 (alert 대체) */
         #toast {
-            visibility: hidden;
-            min-width: 250px;
-            background-color: #333;
-            color: #fff;
-            text-align: center;
-            border-radius: 8px;
-            padding: 16px;
-            position: fixed;
-            z-index: 1;
-            left: 50%;
-            bottom: 30px;
-            transform: translateX(-50%);
-            font-size: 15px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            visibility: hidden; min-width: 250px; background-color: #333; color: #fff;
+            text-align: center; border-radius: 8px; padding: 16px; position: fixed;
+            z-index: 999; left: 50%; bottom: 30px; transform: translateX(-50%);
+            font-size: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
         #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
         @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
         @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
 
-        /* 화면 숨김 유틸 */
         .hidden { display: none !important; }
     </style>
 </head>
@@ -154,12 +107,8 @@
         <h1>틱택토 문장 챌린지</h1>
         <p>내 정보를 입력하고 입장하세요.</p>
         <div class="select-group">
-            <select id="grade" required>
-                <option value="">학년 선택</option>
-            </select>
-            <select id="classNum" required>
-                <option value="">반 선택</option>
-            </select>
+            <select id="grade" required><option value="">학년 선택</option></select>
+            <select id="classNum" required><option value="">반 선택</option></select>
         </div>
         <input type="number" id="studentNum" placeholder="번호" required>
         <input type="text" id="studentName" placeholder="이름" required>
@@ -178,41 +127,46 @@
     <div class="container hidden" id="teacher-screen">
         <h1>교사 설정 모드</h1>
         
-        <!-- 기본 및 보안 설정 -->
         <div style="text-align: left; background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #eee;">
             <h3 style="margin-top: 0; color: #2c3e50; font-size: 16px;">⚙️ 기본 및 보안 설정</h3>
-            
             <label style="font-weight:bold; font-size:13px; color:#555;">교사 모드 비밀번호</label>
             <input type="text" id="t-password" placeholder="새 비밀번호 (입력 시 변경됨)">
-
-            <label style="font-weight:bold; font-size:13px; color:#555; margin-top:10px; display:block;">최소 학년</label>
-            <input type="number" id="t-min-grade" min="1" max="6">
-            
-            <label style="font-weight:bold; font-size:13px; color:#555; margin-top:10px; display:block;">최대 학년</label>
-            <input type="number" id="t-max-grade" min="1" max="6">
-            
-            <label style="font-weight:bold; font-size:13px; color:#555; margin-top:10px; display:block;">최대 반</label>
-            <input type="number" id="t-max-class" min="1" max="30">
-            
-            <button id="btn-save-settings" class="btn-blue" style="margin-top: 15px;">기본 설정 저장</button>
+            <div class="select-group" style="margin-top:10px;">
+                <div>
+                    <label style="font-weight:bold; font-size:13px; color:#555;">최소 학년</label>
+                    <input type="number" id="t-min-grade" min="1" max="6">
+                </div>
+                <div>
+                    <label style="font-weight:bold; font-size:13px; color:#555;">최대 학년</label>
+                    <input type="number" id="t-max-grade" min="1" max="6">
+                </div>
+                <div>
+                    <label style="font-weight:bold; font-size:13px; color:#555;">최대 반</label>
+                    <input type="number" id="t-max-class" min="1" max="30">
+                </div>
+            </div>
+            <button id="btn-save-settings" class="btn-blue" style="margin-top: 15px; padding: 10px;">기본 설정 저장</button>
         </div>
 
-        <!-- 단원 및 문장 관리 -->
         <div style="text-align: left; background: #eef2f5; padding: 15px; border-radius: 10px; border: 1px solid #dde3e8;">
             <h3 style="margin-top: 0; color: #2c3e50; font-size: 16px;">📚 단원 및 문장 관리</h3>
             <select id="t-unit-select">
                 <option value="new">+ 새 단원 추가</option>
             </select>
             <input type="text" id="t-unit-name" placeholder="단원명 (예: 1단원. 인사하기)">
-            <textarea id="t-unit-sentences" rows="6" placeholder="영어문장 : 한국어뜻 (엔터로 구분)&#10;예:&#10;What grade are you in? : 너는 몇 학년이니?&#10;Good morning : 좋은 아침"></textarea>
+            <textarea id="t-unit-sentences" rows="6" placeholder="영어문장 : 한국어뜻 (엔터로 구분)&#10;예:&#10;What grade are you in? : 너는 몇 학년이니?"></textarea>
+            <button id="btn-save-unit" class="btn-blue" style="margin-top:5px; padding:10px;">현재 작성된 단원 저장</button>
             
-            <div style="display:flex; gap:10px; margin-top:5px;">
-                <button id="btn-save-unit" class="btn-blue">단원 저장</button>
-                <button id="btn-delete-unit" class="btn-red">단원 삭제</button>
+            <!-- 단원 리스트 보기 영역 -->
+            <div id="teacher-unit-list-container" style="margin-top:15px; border-top:1px dashed #b9c6d2; padding-top:15px;">
+                <h4 style="margin:0 0 10px 0; color:#555; font-size: 14px;">저장된 단원 목록 (클릭하여 수정)</h4>
+                <ul id="teacher-unit-list" style="list-style:none; padding:0; margin:0; font-size:14px; max-height:120px; overflow-y:auto;">
+                    <!-- JS 생성 -->
+                </ul>
             </div>
         </div>
         
-        <button id="btn-close-teacher" style="margin-top:15px; background-color:#95a5a6;">닫기</button>
+        <button id="btn-close-teacher" style="margin-top:15px; background-color:#95a5a6;">대기실로 돌아가기</button>
     </div>
 
     <!-- 2. 대기실 (방 생성/참여) 화면 -->
@@ -231,7 +185,7 @@
 
         <div style="margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
             <h3>게임 참여하기</h3>
-            <p style="font-size: 13px; color: #666;">친구의 방 코드를 입력하세요. (후공/빨간색)</p>
+            <p style="font-size: 13px; color: #666;">친구의 방 코드를 입력하세요. (후공)</p>
             <input type="text" id="join-room-code" placeholder="4자리 방 코드 입력" maxlength="4">
             <button id="btn-join-room" class="btn-red">입장하기</button>
         </div>
@@ -249,16 +203,10 @@
 
         <div id="turn-status">방에 입장했습니다.</div>
         
-        <div class="instruction" style="margin-bottom: 5px;">
-            <strong>게임 룰:</strong> 상대가 불러주는 뜻을 듣고 문장을 정확히 쓰거나 말하세요! 맞혔다면 원하는 칸을 클릭하세요.
-        </div>
-        
-        <!-- 문장 리스트 보기 -->
-        <button id="btn-toggle-sentences" style="margin-top:5px; background-color:#17a2b8; padding:10px; font-size:14px;">📖 이번 게임 문장 보기</button>
-        <div id="sentence-list-container" class="hidden" style="margin-top:10px; padding:12px; background:#fff; border:1px solid #17a2b8; border-radius:8px; text-align:left; font-size:14px; max-height:200px; overflow-y:auto; line-height: 1.5;">
-            <!-- 문장 목록이 여기에 표시됩니다 -->
-        </div>
+        <!-- 실시간 상호작용 패널 (문제 내기/풀기) -->
+        <div id="interaction-panel"></div>
 
+        <!-- 빙고판 -->
         <div id="board">
             <div class="cell" data-index="0"></div>
             <div class="cell" data-index="1"></div>
@@ -274,16 +222,14 @@
         <button id="btn-leave" style="margin-top:20px; background-color:#95a5a6;">나가기</button>
     </div>
 
-    <!-- 알림 메시지 팝업 -->
     <div id="toast">메시지</div>
 
-    <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // 환경 변수 연동 (사용자 제공 설정 반영)
+        // 환경 변수 연동
         const firebaseConfig = {
             apiKey: "AIzaSyDXp0gubAUnliOqznx37Xu4mrQ9NoHLhaA",
             authDomain: "tictac-c3d4f.firebaseapp.com",
@@ -293,15 +239,12 @@
             appId: "1:192437292015:web:0cda453bc116146589841a",
             measurementId: "G-4LJJMW1MNB"
         };
-        
-        // 외부 실행 시 projectId를 기본 appId로 사용하도록 처리
         const appId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.projectId;
         
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // UI 요소
         const screens = {
             loading: document.getElementById('loading-screen'),
             login: document.getElementById('login-screen'),
@@ -311,32 +254,24 @@
         };
         const cells = document.querySelectorAll('.cell');
         const toastEl = document.getElementById('toast');
+        const interactionPanel = document.getElementById('interaction-panel');
 
-        // 상태 변수
-        let currentUser = null;
-        let myUserInfo = {};
-        let myColor = ""; // "blue" (방장/선공) or "red" (참여자/후공)
-        let currentRoomId = "";
-        let unsubscribeRoom = null;
-        
-        // 교사 데이터 관리 변수
+        let currentUser = null, myUserInfo = {}, myColor = "", currentRoomId = "", unsubscribeRoom = null;
         let globalSettings = { minGrade: 1, maxGrade: 6, maxClass: 10, teacherPassword: "1234" }; 
         let unitsData = [];
+        window.lastPhaseKey = ""; // UI 리렌더링 방지용 키
 
-        // 알림(Toast) 함수 (alert 대신 사용)
         function showToast(message) {
             toastEl.innerText = message;
             toastEl.className = "show";
             setTimeout(() => { toastEl.className = toastEl.className.replace("show", ""); }, 3000);
         }
 
-        // 화면 전환 함수
         function showScreen(screenName) {
             Object.values(screens).forEach(s => s.classList.add('hidden'));
             screens[screenName].classList.remove('hidden');
         }
 
-        // 1. Firebase 인증 (앱 시작 시 필수)
         const initAuth = async () => {
             try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -345,7 +280,6 @@
                     await signInAnonymously(auth);
                 }
             } catch (error) {
-                console.error("인증 실패:", error);
                 showToast("서버 인증에 실패했습니다.");
             }
         };
@@ -357,165 +291,82 @@
                 showScreen('login');
             }
         });
-
         initAuth();
 
-        // 0. 교사 설정 및 단원 실시간 동기화
         function initSettingsListener() {
-            // 기본 설정 연동
-            const settingsRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global');
-            onSnapshot(settingsRef, (snap) => {
-                if(snap.exists()) {
-                    globalSettings = { ...globalSettings, ...snap.data() };
-                }
+            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), (snap) => {
+                if(snap.exists()) globalSettings = { ...globalSettings, ...snap.data() };
                 updateDropdowns();
-            }, (error) => {
-                console.error("설정 동기화 에러:", error);
             });
-
-            // 단원 데이터 연동
-            const unitsRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'units');
-            onSnapshot(unitsRef, (snap) => {
-                if(snap.exists()) {
-                    unitsData = snap.data().items || [];
-                } else {
-                    unitsData = [];
-                }
+            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'units'), (snap) => {
+                if(snap.exists()) unitsData = snap.data().items || [];
+                else unitsData = [];
                 updateUnitDropdowns();
-            }, (error) => {
-                console.error("단원 동기화 에러:", error);
             });
         }
 
         function updateDropdowns() {
             const gradeSelect = document.getElementById('grade');
             const classSelect = document.getElementById('classNum');
-            
-            const currentGrade = gradeSelect.value;
-            const currentClass = classSelect.value;
+            const cG = gradeSelect.value, cC = classSelect.value;
 
             gradeSelect.innerHTML = '<option value="">학년 선택</option>';
-            for(let i = globalSettings.minGrade; i <= globalSettings.maxGrade; i++) {
-                gradeSelect.innerHTML += `<option value="${i}">${i}학년</option>`;
-            }
-
+            for(let i = globalSettings.minGrade; i <= globalSettings.maxGrade; i++) gradeSelect.innerHTML += `<option value="${i}">${i}학년</option>`;
+            
             classSelect.innerHTML = '<option value="">반 선택</option>';
-            for(let i = 1; i <= globalSettings.maxClass; i++) {
-                classSelect.innerHTML += `<option value="${i}">${i}반</option>`;
-            }
+            for(let i = 1; i <= globalSettings.maxClass; i++) classSelect.innerHTML += `<option value="${i}">${i}반</option>`;
 
-            if (currentGrade && [...gradeSelect.options].some(o => o.value === currentGrade)) gradeSelect.value = currentGrade;
-            if (currentClass && [...classSelect.options].some(o => o.value === currentClass)) classSelect.value = currentClass;
+            if (cG) gradeSelect.value = cG;
+            if (cC) classSelect.value = cC;
         }
 
         function updateUnitDropdowns() {
             const tSelect = document.getElementById('t-unit-select');
             const lSelect = document.getElementById('create-room-unit');
-            
-            const currentT = tSelect.value;
-            const currentL = lSelect.value;
+            const cT = tSelect.value, cL = lSelect.value;
 
-            tSelect.innerHTML = '<option value="new">+ 새 단원 추가</option>';
-            lSelect.innerHTML = '<option value="">단원 선택 (자유 문장)</option>';
+            tSelect.innerHTML = '<option value="new">+ 새 단원 추가 (입력창 비우기)</option>';
+            lSelect.innerHTML = '<option value="">단원 선택 (자유 문장 출제)</option>';
+            
+            const ul = document.getElementById('teacher-unit-list');
+            ul.innerHTML = '';
 
             unitsData.forEach(unit => {
                 tSelect.innerHTML += `<option value="${unit.id}">${unit.name}</option>`;
                 lSelect.innerHTML += `<option value="${unit.id}">${unit.name}</option>`;
+                
+                ul.innerHTML += `
+                    <li style="display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid #eee; background:#fff; margin-bottom:5px; border-radius:5px;">
+                        <span style="font-weight:bold; color:var(--blue-color); cursor:pointer; flex:1;" onclick="window.loadTeacherUnit('${unit.id}')">📘 ${unit.name}</span>
+                        <span style="color:#e74c3c; cursor:pointer; font-size:18px; padding:0 5px;" onclick="window.deleteTeacherUnit('${unit.id}')">🗑️</span>
+                    </li>`;
             });
 
-            if (currentT && [...tSelect.options].some(o => o.value === currentT)) tSelect.value = currentT;
-            if (currentL && [...lSelect.options].some(o => o.value === currentL)) lSelect.value = currentL;
+            if (cT) tSelect.value = cT;
+            if (cL) lSelect.value = cL;
         }
 
-        // 2. 로그인 폼 제출
-        document.getElementById('btn-login').addEventListener('click', () => {
-            const grade = document.getElementById('grade').value;
-            const classNum = document.getElementById('classNum').value;
-            const studentNum = document.getElementById('studentNum').value;
-            const name = document.getElementById('studentName').value;
+        window.loadTeacherUnit = (id) => {
+            const tSelect = document.getElementById('t-unit-select');
+            tSelect.value = id;
+            tSelect.dispatchEvent(new Event('change'));
+            showToast("단원 내용을 불러왔습니다. 수정 후 저장하세요.");
+        };
 
-            if (!grade || !classNum || !studentNum || !name) {
-                showToast("모든 정보를 입력해주세요!");
-                return;
-            }
+        window.deleteTeacherUnit = async (id) => {
+            let newItems = unitsData.filter(u => u.id !== id);
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'units'), { items: newItems });
+            showToast("단원이 삭제되었습니다.");
+            document.getElementById('t-unit-select').value = 'new';
+            document.getElementById('t-unit-select').dispatchEvent(new Event('change'));
+        };
 
-            myUserInfo = { grade, classNum, studentNum, name };
-            document.getElementById('lobby-greeting').innerText = `${grade}학년 ${classNum}반 ${name} 학생, 환영합니다!`;
-            showScreen('lobby');
-        });
-
-        // 2-1. 교사 모드 진입 (비밀번호 확인 패널 열기)
-        document.getElementById('btn-teacher-entry').addEventListener('click', () => {
-            document.getElementById('teacher-auth-panel').classList.toggle('hidden');
-            document.getElementById('teacher-pwd-input').focus();
-        });
-
-        // 2-2. 교사 모드 비밀번호 확인
-        document.getElementById('btn-submit-teacher-pwd').addEventListener('click', () => {
-            const pwd = document.getElementById('teacher-pwd-input').value;
-            const correctPwd = globalSettings.teacherPassword || "1234";
-            
-            if(pwd === correctPwd) {
-                // 교사 모드 진입 시 기존 설정 값 불러오기
-                document.getElementById('t-min-grade').value = globalSettings.minGrade;
-                document.getElementById('t-max-grade').value = globalSettings.maxGrade;
-                document.getElementById('t-max-class').value = globalSettings.maxClass;
-                document.getElementById('t-password').value = globalSettings.teacherPassword || "1234";
-                
-                // 패널 초기화 및 화면 전환
-                document.getElementById('teacher-pwd-input').value = ""; 
-                document.getElementById('teacher-auth-panel').classList.add('hidden');
-                
-                // 단원 초기화
-                document.getElementById('t-unit-select').value = 'new';
-                document.getElementById('t-unit-name').value = '';
-                document.getElementById('t-unit-sentences').value = '';
-
-                showScreen('teacher');
-            } else {
-                showToast("비밀번호가 틀렸습니다.");
-            }
-        });
-
-        document.getElementById('btn-close-teacher').addEventListener('click', () => {
-            showScreen('login');
-        });
-
-        // 2-3. 교사 모드: 기본 설정 저장
-        document.getElementById('btn-save-settings').addEventListener('click', async () => {
-            const minG = parseInt(document.getElementById('t-min-grade').value) || 1;
-            const maxG = parseInt(document.getElementById('t-max-grade').value) || 6;
-            const maxC = parseInt(document.getElementById('t-max-class').value) || 10;
-            const newPwd = document.getElementById('t-password').value.trim();
-            
-            if (!newPwd) {
-                showToast("비밀번호를 입력해주세요.");
-                return;
-            }
-
-            const settingsRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global');
-            try {
-                await setDoc(settingsRef, {
-                    minGrade: minG,
-                    maxGrade: maxG,
-                    maxClass: maxC,
-                    teacherPassword: newPwd
-                }, { merge: true });
-                showToast("기본 설정이 저장되었습니다.");
-            } catch(e) {
-                console.error(e);
-                showToast("설정 저장에 실패했습니다.");
-            }
-        });
-
-        // 2-4. 교사 모드: 단원 선택 이벤트
         document.getElementById('t-unit-select').addEventListener('change', (e) => {
-            const val = e.target.value;
-            if (val === 'new') {
+            if (e.target.value === 'new') {
                 document.getElementById('t-unit-name').value = '';
                 document.getElementById('t-unit-sentences').value = '';
             } else {
-                const unit = unitsData.find(u => u.id === val);
+                const unit = unitsData.find(u => u.id === e.target.value);
                 if (unit) {
                     document.getElementById('t-unit-name').value = unit.name;
                     document.getElementById('t-unit-sentences').value = unit.text;
@@ -523,310 +374,394 @@
             }
         });
 
-        // 2-5. 교사 모드: 단원 저장
         document.getElementById('btn-save-unit').addEventListener('click', async () => {
             const name = document.getElementById('t-unit-name').value.trim();
             const text = document.getElementById('t-unit-sentences').value.trim();
             const selectedId = document.getElementById('t-unit-select').value;
             
-            if(!name || !text) {
-                showToast("단원명과 문장을 모두 입력해주세요.");
-                return;
-            }
+            if(!name || !text) return showToast("단원명과 문장을 모두 입력해주세요.");
 
             let newItems = [...unitsData];
             if (selectedId === 'new') {
                 newItems.push({ id: Date.now().toString(), name, text });
             } else {
                 const idx = newItems.findIndex(u => u.id === selectedId);
-                if (idx > -1) {
-                    newItems[idx] = { ...newItems[idx], name, text };
-                }
+                if (idx > -1) newItems[idx] = { ...newItems[idx], name, text };
             }
 
-            try {
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'units'), { items: newItems });
-                showToast("단원이 저장되었습니다.");
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'units'), { items: newItems });
+            showToast("단원이 성공적으로 저장되었습니다.");
+        });
+
+        document.getElementById('btn-login').addEventListener('click', () => {
+            const grade = document.getElementById('grade').value;
+            const classNum = document.getElementById('classNum').value;
+            const studentNum = document.getElementById('studentNum').value;
+            const name = document.getElementById('studentName').value;
+
+            if (!grade || !classNum || !studentNum || !name) return showToast("모든 정보를 선택/입력해주세요!");
+
+            myUserInfo = { grade, classNum, studentNum, name };
+            document.getElementById('lobby-greeting').innerText = `${grade}학년 ${classNum}반 ${name} 학생, 환영합니다!`;
+            showScreen('lobby');
+        });
+
+        // 교사 로그인 처리
+        document.getElementById('btn-teacher-entry').addEventListener('click', () => {
+            document.getElementById('teacher-auth-panel').classList.toggle('hidden');
+        });
+        document.getElementById('btn-submit-teacher-pwd').addEventListener('click', () => {
+            const pwd = document.getElementById('teacher-pwd-input').value;
+            if(pwd === globalSettings.teacherPassword) {
+                document.getElementById('t-min-grade').value = globalSettings.minGrade;
+                document.getElementById('t-max-grade').value = globalSettings.maxGrade;
+                document.getElementById('t-max-class').value = globalSettings.maxClass;
+                document.getElementById('t-password').value = globalSettings.teacherPassword;
+                document.getElementById('teacher-pwd-input').value = ""; 
+                document.getElementById('teacher-auth-panel').classList.add('hidden');
                 document.getElementById('t-unit-select').value = 'new';
                 document.getElementById('t-unit-name').value = '';
                 document.getElementById('t-unit-sentences').value = '';
-            } catch (e) {
-                showToast("단원 저장에 실패했습니다.");
+                showScreen('teacher');
+            } else {
+                showToast("비밀번호가 틀렸습니다.");
             }
         });
-
-        // 2-6. 교사 모드: 단원 삭제
-        document.getElementById('btn-delete-unit').addEventListener('click', async () => {
-            const selectedId = document.getElementById('t-unit-select').value;
-            if (selectedId === 'new') return;
-
-            let newItems = unitsData.filter(u => u.id !== selectedId);
-            try {
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'units'), { items: newItems });
-                showToast("단원이 삭제되었습니다.");
-                document.getElementById('t-unit-select').value = 'new';
-                document.getElementById('t-unit-name').value = '';
-                document.getElementById('t-unit-sentences').value = '';
-            } catch (e) {
-                showToast("단원 삭제에 실패했습니다.");
-            }
+        document.getElementById('btn-close-teacher').addEventListener('click', () => showScreen('login'));
+        document.getElementById('btn-save-settings').addEventListener('click', async () => {
+            const minG = parseInt(document.getElementById('t-min-grade').value) || 1;
+            const maxG = parseInt(document.getElementById('t-max-grade').value) || 6;
+            const maxC = parseInt(document.getElementById('t-max-class').value) || 10;
+            const newPwd = document.getElementById('t-password').value.trim();
+            if (!newPwd) return showToast("비밀번호를 입력해주세요.");
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), {
+                minGrade: minG, maxGrade: maxG, maxClass: maxC, teacherPassword: newPwd
+            }, { merge: true });
+            showToast("기본 설정이 저장되었습니다.");
         });
 
-        // 3. 방 만들기 (Player 1 - Blue)
         document.getElementById('btn-create-room').addEventListener('click', async () => {
             if (!currentUser) return;
-            
             const selectedUnitId = document.getElementById('create-room-unit').value;
-            const selectedUnitName = selectedUnitId ? document.getElementById('create-room-unit').options[document.getElementById('create-room-unit').selectedIndex].text : "자유 문장";
-            
-            // 4자리 랜덤 숫자 코드 생성
             const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
             const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode);
 
             try {
                 await setDoc(roomRef, {
-                    player1: myUserInfo,
-                    player2: null,
+                    player1: myUserInfo, player2: null,
                     board: ["", "", "", "", "", "", "", "", ""],
-                    turn: "blue",
-                    status: "waiting",
-                    winner: null,
+                    turn: "blue", status: "waiting", winner: null,
                     unitId: selectedUnitId,
-                    unitName: selectedUnitName
+                    turnPhase: "selecting_sentence", // 새 단계 추가 (문제 출제 대기)
+                    currentQuestion: null
                 });
-
-                myColor = "blue";
-                currentRoomId = roomCode;
+                myColor = "blue"; currentRoomId = roomCode;
                 enterGameRoom(roomCode);
-            } catch (error) {
-                console.error("방 생성 오류:", error);
-                showToast("방을 만들지 못했습니다.");
-            }
+            } catch (e) { showToast("방을 만들지 못했습니다."); }
         });
 
-        // 4. 방 참여하기 (Player 2 - Red)
         document.getElementById('btn-join-room').addEventListener('click', async () => {
             if (!currentUser) return;
-
             const roomCode = document.getElementById('join-room-code').value.trim();
-            if (roomCode.length !== 4) {
-                showToast("4자리 코드를 입력해주세요.");
-                return;
-            }
-
-            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode);
+            if (roomCode.length !== 4) return showToast("4자리 코드를 입력해주세요.");
             
-            try {
-                const roomSnap = await getDoc(roomRef);
-                if (roomSnap.exists()) {
-                    const roomData = roomSnap.data();
-                    if (roomData.status === "waiting" && !roomData.player2) {
-                        // 참여 성공, 상태 업데이트
-                        await updateDoc(roomRef, {
-                            player2: myUserInfo,
-                            status: "playing"
-                        });
-                        myColor = "red";
-                        currentRoomId = roomCode;
-                        enterGameRoom(roomCode);
-                    } else {
-                        showToast("이미 게임이 시작되었거나 꽉 찬 방입니다.");
-                    }
-                } else {
-                    showToast("존재하지 않는 방 코드입니다.");
-                }
-            } catch (error) {
-                console.error("방 참여 오류:", error);
-                showToast("방 입장에 실패했습니다.");
-            }
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode);
+            const roomSnap = await getDoc(roomRef);
+            if (roomSnap.exists()) {
+                const data = roomSnap.data();
+                if (data.status === "waiting" && !data.player2) {
+                    await updateDoc(roomRef, { player2: myUserInfo, status: "playing" });
+                    myColor = "red"; currentRoomId = roomCode;
+                    enterGameRoom(roomCode);
+                } else showToast("이미 게임이 진행중이거나 방이 꽉 찼습니다.");
+            } else showToast("존재하지 않는 방입니다.");
         });
 
-        // 5. 게임방 화면 구성 및 실시간 리스너 연동
         function enterGameRoom(roomCode) {
             showScreen('game');
             document.getElementById('current-room-id').innerText = roomCode;
-            document.getElementById('sentence-list-container').classList.add('hidden'); // 입장 시 문장창 닫기
+            window.lastPhaseKey = ""; // Reset render key
             
-            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode);
-
-            // 실시간 데이터 동기화
-            unsubscribeRoom = onSnapshot(roomRef, (snapshot) => {
-                if (snapshot.exists()) {
-                    updateGameUI(snapshot.data());
-                } else {
-                    showToast("방이 삭제되었습니다.");
-                    resetGame();
-                }
-            }, (error) => {
-                console.error("동기화 에러:", error);
-                showToast("네트워크 동기화 오류가 발생했습니다.");
+            unsubscribeRoom = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode), (snap) => {
+                if (snap.exists()) updateGameUI(snap.data());
+                else { showToast("방이 삭제되었습니다."); resetGame(); }
             });
         }
 
-        // 5-1. 게임 문장 보기 버튼 이벤트
-        document.getElementById('btn-toggle-sentences').addEventListener('click', () => {
-            const container = document.getElementById('sentence-list-container');
-            container.classList.toggle('hidden');
-        });
-
-        // 6. UI 업데이트 로직 (Firestore 데이터를 바탕으로 화면 갱신)
         function updateGameUI(data) {
-            // 플레이어 정보 표시
-            document.getElementById('player1-info').innerText = data.player1 ? data.player1.name : "대기 중...";
+            window.currentGameData = data;
             
+            // Header Info
+            document.getElementById('player1-info').innerText = data.player1 ? data.player1.name : "대기 중...";
             const p2Info = document.getElementById('player2-info');
-            if (data.player2) {
-                p2Info.innerText = data.player2.name;
-                p2Info.style.backgroundColor = "var(--red-color)";
-            } else {
-                p2Info.innerText = "대기 중...";
-                p2Info.style.backgroundColor = "#ccc";
-            }
+            if (data.player2) { p2Info.innerText = data.player2.name; p2Info.style.backgroundColor = "var(--red-color)"; } 
+            else { p2Info.innerText = "대기 중..."; p2Info.style.backgroundColor = "#ccc"; }
 
-            // 이번 게임 문장 렌더링
-            const sentenceContainer = document.getElementById('sentence-list-container');
-            if (data.unitId) {
-                const unit = unitsData.find(u => u.id === data.unitId);
-                if (unit) {
-                    const html = unit.text.split('\n').filter(l => l.trim()).map(l => {
-                        const parts = l.split(':');
-                        if(parts.length >= 2) {
-                            return `<div style="margin-bottom:6px; border-bottom: 1px dashed #eee; padding-bottom: 4px;"><b>${parts[0].trim()}</b> : <span style="color:#666;">${parts.slice(1).join(':').trim()}</span></div>`;
-                        }
-                        return `<div style="margin-bottom:6px; border-bottom: 1px dashed #eee; padding-bottom: 4px;">${l.trim()}</div>`;
-                    }).join('');
-                    sentenceContainer.innerHTML = html || "입력된 문장이 없습니다.";
-                } else {
-                    sentenceContainer.innerHTML = "해당 단원 정보를 찾을 수 없습니다.";
-                }
-            } else {
-                sentenceContainer.innerHTML = "선택된 단원이 없습니다. 자유롭게 문장을 만들어 질문하세요!";
-            }
-
-            // 보드판 렌더링
+            // Board Setup
             data.board.forEach((val, index) => {
                 const cell = cells[index];
-                cell.className = "cell"; // 초기화
-                cell.innerText = "";
-                if (val === "blue") {
-                    cell.classList.add("blue");
-                    cell.innerText = "O";
-                } else if (val === "red") {
-                    cell.classList.add("red");
-                    cell.innerText = "X";
-                }
+                cell.className = "cell"; cell.innerText = "";
+                if (val === "blue") { cell.classList.add("blue"); cell.innerText = "O"; } 
+                else if (val === "red") { cell.classList.add("red"); cell.innerText = "X"; }
             });
 
-            // 상태 메시지 렌더링
+            // Status Bar
             const statusEl = document.getElementById('turn-status');
             if (data.status === "waiting") {
-                statusEl.innerText = "상대방을 기다리는 중입니다...";
-                statusEl.style.backgroundColor = "#fff3cd";
-                statusEl.style.color = "#856404";
+                statusEl.innerText = "상대방을 기다리는 중입니다..."; statusEl.style.backgroundColor = "#fff3cd"; statusEl.style.color = "#856404";
+                interactionPanel.innerHTML = "";
+                return;
             } else if (data.status === "finished") {
+                interactionPanel.innerHTML = "";
                 if (data.winner === "draw") {
-                    statusEl.innerText = "무승부! 게임이 종료되었습니다.";
-                    statusEl.style.backgroundColor = "#e2e3e5";
-                    statusEl.style.color = "#383d41";
+                    statusEl.innerText = "무승부! 게임 종료."; statusEl.style.backgroundColor = "#e2e3e5"; statusEl.style.color = "#383d41";
                 } else {
                     const winnerName = data.winner === "blue" ? data.player1.name : data.player2.name;
-                    statusEl.innerText = `🎉 ${winnerName} 승리! 🎉`;
-                    statusEl.style.backgroundColor = data.winner === "blue" ? "#d4edda" : "#f8d7da";
-                    statusEl.style.color = data.winner === "blue" ? "#155724" : "#721c24";
+                    statusEl.innerText = `🎉 ${winnerName} 승리! 🎉`; statusEl.style.backgroundColor = data.winner === "blue" ? "#d4edda" : "#f8d7da"; statusEl.style.color = data.winner === "blue" ? "#155724" : "#721c24";
                 }
-            } else if (data.status === "playing") {
-                if (data.turn === myColor) {
-                    statusEl.innerText = "내 차례입니다! 문장을 맞히고 칸을 고르세요.";
-                    statusEl.style.backgroundColor = myColor === "blue" ? "#d4edda" : "#f8d7da";
-                    statusEl.style.color = myColor === "blue" ? "#155724" : "#721c24";
-                } else {
-                    const oppName = myColor === "blue" ? data.player2.name : data.player1.name;
-                    statusEl.innerText = `상대방(${oppName})의 차례입니다...`;
-                    statusEl.style.backgroundColor = "#e2e3e5";
-                    statusEl.style.color = "#383d41";
-                }
+                return;
             }
+
+            // Phase and Turn checking
+            const isMyTurn = (data.turn === myColor);
+            const phase = data.turnPhase || 'selecting_cell'; // fallback
             
-            // 로컬 변수에 데이터 캐싱 (클릭 이벤트에서 사용)
-            window.currentGameData = data;
+            if (isMyTurn) {
+                statusEl.innerText = "👉 나의 차례입니다."; statusEl.style.backgroundColor = myColor === "blue" ? "#d4edda" : "#f8d7da"; statusEl.style.color = myColor === "blue" ? "#155724" : "#721c24";
+            } else {
+                const oppName = myColor === "blue" ? data.player2.name : data.player1.name;
+                statusEl.innerText = `⏳ 상대방(${oppName})의 차례입니다.`; statusEl.style.backgroundColor = "#e2e3e5"; statusEl.style.color = "#383d41";
+            }
+
+            // Render Interaction Panel ONLY if state changed to prevent cursor loss during typing
+            const phaseKey = data.turn + "_" + phase + "_" + (data.currentQuestion ? data.currentQuestion.ko + "_" + data.currentQuestion.method : "");
+            if (window.lastPhaseKey !== phaseKey) {
+                window.lastPhaseKey = phaseKey;
+                renderInteractionPanel(data, isMyTurn, phase);
+            }
         }
 
-        // 7. 칸 클릭 이벤트 (보드 업데이트)
+        function renderInteractionPanel(data, isMyTurn, phase) {
+            let html = "";
+            if (isMyTurn) {
+                // 내 차례일 때
+                if (phase === 'selecting_sentence') {
+                    html = `<div style="background:#fff3cd; color:#856404; padding:15px; border-radius:10px; font-weight:bold;">상대방이 문제를 고르고 있습니다. 준비하세요! 🧐</div>`;
+                } else if (phase === 'answering') {
+                    const method = data.currentQuestion.method;
+                    const methodText = method === 'type' ? '⌨️ 타자로 치기' : '🎤 마이크로 말하기';
+
+                    html = `
+                        <div style="background:#eef; padding:15px; border-radius:10px; border:2px solid var(--blue-color);">
+                            <h4 style="margin:0 0 10px 0; color:#2c3e50;">상대방이 낸 문제 (방식: ${methodText})</h4>
+                            <div style="font-size:20px; font-weight:bold; margin-bottom:15px; color:#E24A4A;">"${data.currentQuestion.ko}"</div>
+                            <p style="font-size:13px; color:#666; margin-bottom:10px;">정답을 맞히면 빙고 칸을 선택할 수 있습니다.</p>
+                    `;
+
+                    if (method === 'type') {
+                        html += `
+                            <div id="type-area" style="margin-top:10px;">
+                                <input type="text" id="answer-input" placeholder="정확한 영어 문장을 입력하세요" autocomplete="off" spellcheck="false" style="margin-bottom:5px;">
+                                <button id="btn-submit-answer" class="btn-blue" style="margin:0; padding:12px;">제출하기</button>
+                            </div>
+                        `;
+                    } else {
+                        html += `
+                            <div id="speak-area" style="margin-top:10px;">
+                                <button id="btn-start-speak" class="btn-red" style="margin:0; padding:12px;">🎤 클릭하여 말하기 시작</button>
+                                <div id="speech-result" style="margin-top:10px; font-weight:bold; color:var(--blue-color);"></div>
+                            </div>
+                        `;
+                    }
+                    html += `</div>`;
+                } else if (phase === 'selecting_cell') {
+                    html = `<div style="background:#d4edda; color:#155724; padding:15px; border-radius:10px; font-weight:bold; border:2px solid #28a745;">🎉 정답입니다! 빙고판에서 원하는 칸을 터치하세요.</div>`;
+                }
+            } else {
+                // 상대방 차례일 때 (내가 출제자)
+                if (phase === 'selecting_sentence') {
+                    html = `
+                        <div style="background:#fff3cd; padding:15px; border-radius:10px; border:2px solid #ffeeba;">
+                            <h4 style="margin:0 0 10px 0; color:#856404;">상대방에게 낼 문제를 클릭하세요!</h4>
+                            <div style="margin-bottom: 10px; background: white; padding: 10px; border-radius: 5px; text-align: center; border: 1px solid #ddd;">
+                                <span style="font-size: 13px; font-weight: bold; margin-right: 10px;">답변 방식 지정:</span>
+                                <label style="cursor:pointer; margin-right: 10px;"><input type="radio" name="q-method" value="type" checked> ⌨️ 타자</label>
+                                <label style="cursor:pointer;"><input type="radio" name="q-method" value="speak"> 🎤 말하기</label>
+                            </div>
+                            <div style="max-height:160px; overflow-y:auto; border:1px solid #ddd; border-radius:5px; background:white; padding:5px;">
+                                ${generateQuestionList(data.unitId)}
+                            </div>
+                        </div>
+                    `;
+                } else if (phase === 'answering') {
+                    const methodText = data.currentQuestion.method === 'type' ? '⌨️ 타자' : '🎤 말하기';
+                    html = `<div style="background:#eef; color:#2c3e50; padding:15px; border-radius:10px;">상대방이 땀을 흘리며 문제를 푸는 중입니다... 💦<br><br><span style="font-size:13px; color:#666;">출제한 문제: ${data.currentQuestion.ko} (방식: ${methodText})</span></div>`;
+                } else if (phase === 'selecting_cell') {
+                    html = `<div style="background:#f8d7da; color:#721c24; padding:15px; border-radius:10px;">앗! 상대방이 정답을 맞혔습니다.<br>상대방이 칸을 선택하고 있습니다. 😱</div>`;
+                }
+            }
+            interactionPanel.innerHTML = html;
+        }
+
+        // 문제 리스트 생성 함수
+        function generateQuestionList(unitId) {
+            if (!unitId) {
+                return `
+                    <div style="padding:10px; text-align:left;">
+                        <label style="font-size:12px; color:#666;">자유 출제 (영어 정답)</label>
+                        <input type="text" id="manual-en" placeholder="예: I am happy" style="padding:8px; margin:2px 0 10px 0; font-size:14px;">
+                        <label style="font-size:12px; color:#666;">문제 (한국어 뜻)</label>
+                        <input type="text" id="manual-ko" placeholder="예: 나는 행복하다" style="padding:8px; margin:2px 0 10px 0; font-size:14px;">
+                        <button id="btn-send-manual" class="btn-blue" style="margin:0; padding:10px;">이 문제 보내기</button>
+                    </div>
+                `;
+            }
+            const unit = unitsData.find(u => u.id === unitId);
+            if (!unit) return "<p>단원 정보가 없습니다.</p>";
+            
+            const lines = unit.text.split('\n').filter(l => l.trim().includes(':'));
+            return lines.map(line => {
+                const [en, ko] = line.split(':');
+                if(!en || !ko) return '';
+                return `<div class="q-item" data-en="${en.trim()}" data-ko="${ko.trim()}"><b>${ko.trim()}</b> <span style="font-size:12px; color:#999;">(${en.trim()})</span></div>`;
+            }).join('');
+        }
+
+        interactionPanel.addEventListener('click', async (e) => {
+            if (!window.currentGameData || !currentRoomId) return;
+            const data = window.currentGameData;
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
+
+            // 1. 문제 리스트에서 클릭하여 전송 (출제자)
+            const qItem = e.target.closest('.q-item');
+            if (qItem) {
+                const en = qItem.getAttribute('data-en');
+                const ko = qItem.getAttribute('data-ko');
+                const method = document.querySelector('input[name="q-method"]:checked').value;
+                await updateDoc(roomRef, { turnPhase: 'answering', currentQuestion: { en, ko, method } });
+            }
+
+            // 2. 자유 모드에서 문제 전송 (출제자)
+            if (e.target.id === 'btn-send-manual') {
+                const en = document.getElementById('manual-en').value.trim();
+                const ko = document.getElementById('manual-ko').value.trim();
+                const method = document.querySelector('input[name="q-method"]:checked').value;
+                if(!en || !ko) return showToast("정답과 문제를 모두 입력하세요.");
+                await updateDoc(roomRef, { turnPhase: 'answering', currentQuestion: { en, ko, method } });
+            }
+
+            // 3. 타자 정답 제출 (답변자)
+            if (e.target.id === 'btn-submit-answer') {
+                const userInput = document.getElementById('answer-input').value;
+                verifyAnswer(userInput, data.currentQuestion.en, roomRef, data);
+            }
+
+            // 4. 음성 인식 시작 (답변자)
+            if (e.target.id === 'btn-start-speak') {
+                startSpeechRecognition(data.currentQuestion.en, roomRef, data);
+            }
+        });
+
+        async function verifyAnswer(userInput, correctAnswer, roomRef, data) {
+            // 문자열 정규화 (소문자 변환, 특수기호 및 공백 완전 제거)
+            const normalize = (str) => {
+                if(!str) return "";
+                return str.toLowerCase().replace(/[^a-z0-9]/g, '');
+            };
+
+            const isCorrect = normalize(userInput) === normalize(correctAnswer);
+
+            if (isCorrect) {
+                showToast("🎉 완벽합니다! 칸을 선택하세요.");
+                await updateDoc(roomRef, { turnPhase: 'selecting_cell' });
+            } else {
+                showToast(`❌ 오답입니다! 정답: ${correctAnswer}`);
+                // 틀리면 즉시 턴 넘김
+                const nextTurn = data.turn === 'blue' ? 'red' : 'blue';
+                await updateDoc(roomRef, { turn: nextTurn, turnPhase: 'selecting_sentence', currentQuestion: null });
+            }
+        }
+
+        function startSpeechRecognition(correctAnswer, roomRef, data) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                showToast("이 브라우저/기기에서는 음성 인식을 지원하지 않습니다. 타자를 이용해주세요.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-start-speak');
+            btn.innerText = "🎤 듣고 있습니다... 말씀하세요!";
+            btn.style.backgroundColor = "#c0392b";
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                const resEl = document.getElementById('speech-result');
+                resEl.innerHTML = `인식된 문장:<br><span style="color:#333; font-size:18px;">"${transcript}"</span>`;
+                
+                // 1.5초 대기 후 정답 판정 (사용자가 인식된 글을 볼 수 있게)
+                setTimeout(() => {
+                    verifyAnswer(transcript, correctAnswer, roomRef, data);
+                }, 1500);
+            };
+
+            recognition.onerror = (event) => {
+                console.error("음성 인식 에러", event.error);
+                showToast("음성을 인식하지 못했습니다. 버튼을 다시 누르세요.");
+                btn.innerText = "🎤 클릭하여 말하기 시작";
+                btn.style.backgroundColor = "var(--red-color)";
+            };
+
+            recognition.start();
+        }
+
         cells.forEach(cell => {
             cell.addEventListener('click', async (e) => {
-                if (!currentUser || !currentRoomId || !window.currentGameData) return;
-                
+                if (!window.currentGameData) return;
                 const data = window.currentGameData;
                 const index = e.target.getAttribute('data-index');
 
-                // 방어 로직: 게임 중이 아님, 내 차례 아님, 이미 칠해진 칸임
                 if (data.status !== "playing") return;
-                if (data.turn !== myColor) {
-                    showToast("내 차례가 아닙니다!");
-                    return;
-                }
-                if (data.board[index] !== "") {
-                    showToast("이미 선택된 칸입니다.");
-                    return;
-                }
+                if (data.turn !== myColor) return showToast("내 차례가 아닙니다.");
+                if (data.turnPhase !== "selecting_cell") return showToast("아직 정답을 맞히지 않았습니다!");
+                if (data.board[index] !== "") return showToast("이미 선택된 칸입니다.");
 
-                // 보드 업데이트 로직
                 const newBoard = [...data.board];
                 newBoard[index] = myColor;
 
-                // 승리 체크
                 const winner = checkWin(newBoard);
                 const nextTurn = myColor === "blue" ? "red" : "blue";
-                
-                let newStatus = "playing";
-                if (winner) newStatus = "finished";
+                let newStatus = winner ? "finished" : "playing";
 
-                // Firestore에 결과 반영
-                const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
-                try {
-                    await updateDoc(roomRef, {
-                        board: newBoard,
-                        turn: nextTurn,
-                        winner: winner,
-                        status: newStatus
-                    });
-                } catch(error) {
-                    console.error("보드 갱신 에러:", error);
-                    showToast("서버에 반영하지 못했습니다.");
-                }
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId), {
+                    board: newBoard,
+                    turn: nextTurn,
+                    turnPhase: 'selecting_sentence', // 다음 턴 시작 시 문제 출제 단계로 리셋
+                    currentQuestion: null,
+                    winner: winner,
+                    status: newStatus
+                });
             });
         });
 
-        // 승리 판정 함수
         function checkWin(board) {
-            const lines = [
-                [0, 1, 2], [3, 4, 5], [6, 7, 8], // 가로
-                [0, 3, 6], [1, 4, 7], [2, 5, 8], // 세로
-                [0, 4, 8], [2, 4, 6]             // 대각선
-            ];
+            const lines = [[0,1,2],[3,4,5],[6,7,8], [0,3,6],[1,4,7],[2,5,8], [0,4,8],[2,4,6]];
             for (let i = 0; i < lines.length; i++) {
                 const [a, b, c] = lines[i];
-                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-                    return board[a]; // "blue" 또는 "red" 반환
-                }
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) return board[a];
             }
-            if (!board.includes("")) return "draw"; // 꽉 찼으면 무승부
-            return null; // 아직 진행 중
+            if (!board.includes("")) return "draw";
+            return null;
         }
 
-        // 방 나가기 로직
-        document.getElementById('btn-leave').addEventListener('click', () => {
-            resetGame();
-        });
-
+        document.getElementById('btn-leave').addEventListener('click', resetGame);
         function resetGame() {
-            if (unsubscribeRoom) {
-                unsubscribeRoom();
-                unsubscribeRoom = null;
-            }
-            currentRoomId = "";
-            myColor = "";
-            window.currentGameData = null;
+            if (unsubscribeRoom) { unsubscribeRoom(); unsubscribeRoom = null; }
+            currentRoomId = ""; myColor = ""; window.currentGameData = null; window.lastPhaseKey = "";
             showScreen('lobby');
         }
     </script>
