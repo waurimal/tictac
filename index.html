@@ -238,9 +238,19 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // 환경 변수 연동
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        // 환경 변수 연동 (사용자 제공 설정 반영)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDXp0gubAUnliOqznx37Xu4mrQ9NoHLhaA",
+            authDomain: "tictac-c3d4f.firebaseapp.com",
+            projectId: "tictac-c3d4f",
+            storageBucket: "tictac-c3d4f.firebasestorage.app",
+            messagingSenderId: "192437292015",
+            appId: "1:192437292015:web:0cda453bc116146589841a",
+            measurementId: "G-4LJJMW1MNB"
+        };
+        
+        // 외부 실행 시 projectId를 기본 appId로 사용하도록 처리
+        const appId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.projectId;
         
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
