@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>틱택토 문장 챌린지 - 멀티플레이어</title>
+    <style>
+        :root {
+            --blue-color: #4A90E2;
+            --red-color: #E24A4A;
+            --bg-color: #f4f7f6;
+        }
+        body { 
+            font-family: 'Pretendard', 'Malgun Gothic', sans-serif; 
+            text-align: center; 
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 400px; 
+            margin: 0 auto; 
+            background: white;
+            padding: 30px 20px; 
+            border-radius: 15px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1 { font-size: 24px; margin-bottom: 20px; color: #2c3e50; }
+        
+        input, select { 
+            width: calc(100% - 24px); 
+            padding: 12px; 
+            margin: 8px 0; 
+            border: 1px solid #ddd; 
+            border-radius: 8px; 
+            font-size: 16px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        select {
+            width: 100%;
+            cursor: pointer;
+        }
+        .select-group { 
+            display: flex; 
+            gap: 10px; 
+            width: 100%; 
+        }
+        .select-group select { 
+            flex: 1; 
+        }
+        button { 
+            width: 100%;
+            padding: 14px; 
+            margin-top: 15px; 
+            cursor: pointer; 
+            background-color: #2c3e50; 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 16px;
+            font-weight: bold; 
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #1a252f; }
+        .btn-blue { background-color: var(--blue-color); }
+        .btn-blue:hover { background-color: #357ABD; }
+        .btn-red { background-color: var(--red-color); }
+        .btn-red:hover { background-color: #C0392B; }
+
+        /* 게임 화면 관련 */
+        #game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .player-badge { padding: 5px 10px; border-radius: 20px; color: white; font-size: 14px; font-weight: bold;}
+        .badge-blue { background-color: var(--blue-color); }
+        .badge-red { background-color: var(--red-color); }
+
+        #room-code-display { font-size: 20px; font-weight: bold; letter-spacing: 2px; color: #2c3e50; margin-bottom: 10px; }
+        #turn-status { font-size: 18px; font-weight: bold; margin: 15px 0; padding: 10px; border-radius: 8px; transition: all 0.3s;}
+
+        #board { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 10px; 
+            margin-top: 20px; 
+        }
+        .cell { 
+            aspect-ratio: 1 / 1; 
+            border: none; 
+            border-radius: 12px;
+            background-color: #edf2f7; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 40px; 
+            cursor: pointer; 
+            box-shadow: inset 0 -4px 0 rgba(0,0,0,0.05);
+            transition: transform 0.1s, background-color 0.3s;
+        }
+        .cell:active { transform: translateY(2px); box-shadow: inset 0 -2px 0 rgba(0,0,0,0.05); }
+        .cell.blue { background-color: var(--blue-color); color: white; }
+        .cell.red { background-color: var(--red-color); color: white; }
+        
+        .instruction { font-size: 13px; color: #666; margin-top: 15px; background: #eef; padding: 10px; border-radius: 8px;}
+
+        /* 커스텀 모달 (alert 대체) */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px;
+            position: fixed;
+            z-index: 1;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-size: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+
+        /* 화면 숨김 유틸 */
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="loading-screen">
+        <h2>서버에 연결 중입니다...</h2>
+        <p>잠시만 기다려주세요.</p>
+    </div>
+
+    <!-- 1. 정보 입력 화면 -->
+    <div class="container hidden" id="login-screen">
+        <h1>틱택토 문장 챌린지</h1>
+        <p>내 정보를 입력하고 입장하세요.</p>
+        <div class="select-group">
+            <select id="grade" required>
+                <option value="">학년 선택</option>
+            </select>
+            <select id="classNum" required>
+                <option value="">반 선택</option>
+            </select>
+        </div>
+        <input type="number" id="studentNum" placeholder="번호" required>
+        <input type="text" id="studentName" placeholder="이름" required>
+        <button id="btn-login" class="btn-blue">다음 단계로</button>
+        <button id="btn-teacher-entry" style="margin-top:15px; background:none; color:#999; border:none; font-size:13px; cursor:pointer; padding:0; width:auto; text-decoration:underline;">👨‍🏫 교사 설정 모드</button>
+    </div>
+
+    <!-- 1-5. 교사 모드 화면 -->
+    <div class="container hidden" id="teacher-screen">
+        <h1>교사 설정 모드</h1>
+        <p style="font-size: 13px; color: #666;">학생들이 선택할 학년과 반의 범위를 설정합니다.</p>
+        <div style="text-align: left; margin-top: 20px; background: #f8f9fa; padding: 15px; border-radius: 10px;">
+            <label style="font-weight:bold; font-size:14px; color:#333;">최소 학년</label>
+            <input type="number" id="t-min-grade" value="1" min="1" max="6">
+            
+            <label style="font-weight:bold; font-size:14px; color:#333; margin-top:10px; display:block;">최대 학년</label>
+            <input type="number" id="t-max-grade" value="6" min="1" max="6">
+            
+            <label style="font-weight:bold; font-size:14px; color:#333; margin-top:10px; display:block;">최대 반</label>
+            <input type="number" id="t-max-class" value="10" min="1" max="30">
+        </div>
+        <button id="btn-save-settings" class="btn-blue">설정 저장</button>
+        <button id="btn-close-teacher" style="margin-top:10px; background-color:#95a5a6;">닫기</button>
+    </div>
+
+    <!-- 2. 대기실 (방 생성/참여) 화면 -->
+    <div class="container hidden" id="lobby-screen">
+        <h1>멀티플레이 대기실</h1>
+        <p id="lobby-greeting"></p>
+        
+        <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+            <h3>새로운 게임 만들기</h3>
+            <p style="font-size: 13px; color: #666;">방을 만들고 친구에게 코드를 알려주세요. (선공/파란색)</p>
+            <button id="btn-create-room" class="btn-blue">방 만들기</button>
+        </div>
+
+        <div style="margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+            <h3>게임 참여하기</h3>
+            <p style="font-size: 13px; color: #666;">친구의 방 코드를 입력하세요. (후공/빨간색)</p>
+            <input type="text" id="join-room-code" placeholder="4자리 방 코드 입력" maxlength="4">
+            <button id="btn-join-room" class="btn-red">입장하기</button>
+        </div>
+    </div>
+
+    <!-- 3. 게임 화면 -->
+    <div class="container hidden" id="game-screen">
+        <div id="room-code-display">방 코드: <span id="current-room-id" style="color:var(--blue-color)">----</span></div>
+        
+        <div id="game-info">
+            <div id="player1-info" class="player-badge badge-blue">대기 중...</div>
+            <div style="font-weight: bold; color: #999;">VS</div>
+            <div id="player2-info" class="player-badge badge-red" style="background-color: #ccc;">대기 중...</div>
+        </div>
+
+        <div id="turn-status">방에 입장했습니다.</div>
+        
+        <div class="instruction">
+            <strong>게임 룰:</strong> 상대가 불러주는 뜻을 듣고 문장을 정확히 쓰거나 말하세요! 맞혔다면 원하는 칸을 클릭하세요.
+        </div>
+
+        <div id="board">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+        
+        <button id="btn-leave" style="margin-top:20px; background-color:#95a5a6;">나가기</button>
+    </div>
+
+    <!-- 알림 메시지 팝업 -->
+    <div id="toast">메시지</div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // 환경 변수 연동
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // UI 요소
+        const screens = {
+            loading: document.getElementById('loading-screen'),
+            login: document.getElementById('login-screen'),
+            teacher: document.getElementById('teacher-screen'),
+            lobby: document.getElementById('lobby-screen'),
+            game: document.getElementById('game-screen')
+        };
+        const cells = document.querySelectorAll('.cell');
+        const toastEl = document.getElementById('toast');
+
+        // 상태 변수
+        let currentUser = null;
+        let myUserInfo = {};
+        let myColor = ""; // "blue" (방장/선공) or "red" (참여자/후공)
+        let currentRoomId = "";
+        let unsubscribeRoom = null;
+        let globalSettings = { minGrade: 1, maxGrade: 6, maxClass: 10 }; // 기본 설정
+
+        // 알림(Toast) 함수 (alert 대신 사용)
+        function showToast(message) {
+            toastEl.innerText = message;
+            toastEl.className = "show";
+            setTimeout(() => { toastEl.className = toastEl.className.replace("show", ""); }, 3000);
+        }
+
+        // 화면 전환 함수
+        function showScreen(screenName) {
+            Object.values(screens).forEach(s => s.classList.add('hidden'));
+            screens[screenName].classList.remove('hidden');
+        }
+
+        // 1. Firebase 인증 (앱 시작 시 필수)
+        const initAuth = async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("인증 실패:", error);
+                showToast("서버 인증에 실패했습니다.");
+            }
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                initSettingsListener();
+                showScreen('login');
+            }
+        });
+
+        initAuth();
+
+        // 0. 교사 설정 실시간 동기화
+        function initSettingsListener() {
+            const settingsRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global');
+            onSnapshot(settingsRef, (snap) => {
+                if(snap.exists()) {
+                    globalSettings = snap.data();
+                }
+                updateDropdowns();
+            }, (error) => {
+                console.error("설정 동기화 에러:", error);
+            });
+        }
+
+        function updateDropdowns() {
+            const gradeSelect = document.getElementById('grade');
+            const classSelect = document.getElementById('classNum');
+            
+            const currentGrade = gradeSelect.value;
+            const currentClass = classSelect.value;
+
+            gradeSelect.innerHTML = '<option value="">학년 선택</option>';
+            for(let i = globalSettings.minGrade; i <= globalSettings.maxGrade; i++) {
+                gradeSelect.innerHTML += `<option value="${i}">${i}학년</option>`;
+            }
+
+            classSelect.innerHTML = '<option value="">반 선택</option>';
+            for(let i = 1; i <= globalSettings.maxClass; i++) {
+                classSelect.innerHTML += `<option value="${i}">${i}반</option>`;
+            }
+
+            // 기존에 선택했던 값이 리스트에 있으면 유지
+            if (currentGrade) gradeSelect.value = currentGrade;
+            if (currentClass) classSelect.value = currentClass;
+        }
+
+        // 2. 로그인 폼 제출
+        document.getElementById('btn-login').addEventListener('click', () => {
+            const grade = document.getElementById('grade').value;
+            const classNum = document.getElementById('classNum').value;
+            const studentNum = document.getElementById('studentNum').value;
+            const name = document.getElementById('studentName').value;
+
+            if (!grade || !classNum || !studentNum || !name) {
+                showToast("모든 정보를 입력해주세요!");
+                return;
+            }
+
+            myUserInfo = { grade, classNum, studentNum, name };
+            document.getElementById('lobby-greeting').innerText = `${grade}학년 ${classNum}반 ${name} 학생, 환영합니다!`;
+            showScreen('lobby');
+        });
+
+        // 2-1. 교사 모드 진입 및 저장
+        document.getElementById('btn-teacher-entry').addEventListener('click', () => {
+            const pwd = prompt("교사 비밀번호를 입력하세요 (기본값: 1234)");
+            if(pwd === "1234") {
+                document.getElementById('t-min-grade').value = globalSettings.minGrade;
+                document.getElementById('t-max-grade').value = globalSettings.maxGrade;
+                document.getElementById('t-max-class').value = globalSettings.maxClass;
+                showScreen('teacher');
+            } else if (pwd !== null) {
+                showToast("비밀번호가 틀렸습니다.");
+            }
+        });
+
+        document.getElementById('btn-close-teacher').addEventListener('click', () => {
+            showScreen('login');
+        });
+
+        document.getElementById('btn-save-settings').addEventListener('click', async () => {
+            const minG = parseInt(document.getElementById('t-min-grade').value) || 1;
+            const maxG = parseInt(document.getElementById('t-max-grade').value) || 6;
+            const maxC = parseInt(document.getElementById('t-max-class').value) || 10;
+            
+            const settingsRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global');
+            try {
+                await setDoc(settingsRef, {
+                    minGrade: minG,
+                    maxGrade: maxG,
+                    maxClass: maxC
+                });
+                showToast("설정이 저장되었습니다.");
+                showScreen('login');
+            } catch(e) {
+                console.error(e);
+                showToast("설정 저장에 실패했습니다.");
+            }
+        });
+
+        // 3. 방 만들기 (Player 1 - Blue)
+        document.getElementById('btn-create-room').addEventListener('click', async () => {
+            if (!currentUser) return;
+            
+            // 4자리 랜덤 숫자 코드 생성
+            const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode);
+
+            try {
+                await setDoc(roomRef, {
+                    player1: myUserInfo,
+                    player2: null,
+                    board: ["", "", "", "", "", "", "", "", ""],
+                    turn: "blue",
+                    status: "waiting",
+                    winner: null
+                });
+
+                myColor = "blue";
+                currentRoomId = roomCode;
+                enterGameRoom(roomCode);
+            } catch (error) {
+                console.error("방 생성 오류:", error);
+                showToast("방을 만들지 못했습니다.");
+            }
+        });
+
+        // 4. 방 참여하기 (Player 2 - Red)
+        document.getElementById('btn-join-room').addEventListener('click', async () => {
+            if (!currentUser) return;
+
+            const roomCode = document.getElementById('join-room-code').value.trim();
+            if (roomCode.length !== 4) {
+                showToast("4자리 코드를 입력해주세요.");
+                return;
+            }
+
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode);
+            
+            try {
+                const roomSnap = await getDoc(roomRef);
+                if (roomSnap.exists()) {
+                    const roomData = roomSnap.data();
+                    if (roomData.status === "waiting" && !roomData.player2) {
+                        // 참여 성공, 상태 업데이트
+                        await updateDoc(roomRef, {
+                            player2: myUserInfo,
+                            status: "playing"
+                        });
+                        myColor = "red";
+                        currentRoomId = roomCode;
+                        enterGameRoom(roomCode);
+                    } else {
+                        showToast("이미 게임이 시작되었거나 꽉 찬 방입니다.");
+                    }
+                } else {
+                    showToast("존재하지 않는 방 코드입니다.");
+                }
+            } catch (error) {
+                console.error("방 참여 오류:", error);
+                showToast("방 입장에 실패했습니다.");
+            }
+        });
+
+        // 5. 게임방 화면 구성 및 실시간 리스너 연동
+        function enterGameRoom(roomCode) {
+            showScreen('game');
+            document.getElementById('current-room-id').innerText = roomCode;
+            
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode);
+
+            // 실시간 데이터 동기화
+            unsubscribeRoom = onSnapshot(roomRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    updateGameUI(snapshot.data());
+                } else {
+                    showToast("방이 삭제되었습니다.");
+                    resetGame();
+                }
+            }, (error) => {
+                console.error("동기화 에러:", error);
+                showToast("네트워크 동기화 오류가 발생했습니다.");
+            });
+        }
+
+        // 6. UI 업데이트 로직 (Firestore 데이터를 바탕으로 화면 갱신)
+        function updateGameUI(data) {
+            // 플레이어 정보 표시
+            document.getElementById('player1-info').innerText = data.player1 ? data.player1.name : "대기 중...";
+            
+            const p2Info = document.getElementById('player2-info');
+            if (data.player2) {
+                p2Info.innerText = data.player2.name;
+                p2Info.style.backgroundColor = "var(--red-color)";
+            } else {
+                p2Info.innerText = "대기 중...";
+                p2Info.style.backgroundColor = "#ccc";
+            }
+
+            // 보드판 렌더링
+            data.board.forEach((val, index) => {
+                const cell = cells[index];
+                cell.className = "cell"; // 초기화
+                cell.innerText = "";
+                if (val === "blue") {
+                    cell.classList.add("blue");
+                    cell.innerText = "O"; // 선택적 표시 (색상과 기호 동시사용)
+                } else if (val === "red") {
+                    cell.classList.add("red");
+                    cell.innerText = "X";
+                }
+            });
+
+            // 상태 메시지 렌더링
+            const statusEl = document.getElementById('turn-status');
+            if (data.status === "waiting") {
+                statusEl.innerText = "상대방을 기다리는 중입니다...";
+                statusEl.style.backgroundColor = "#fff3cd";
+                statusEl.style.color = "#856404";
+            } else if (data.status === "finished") {
+                if (data.winner === "draw") {
+                    statusEl.innerText = "무승부! 게임이 종료되었습니다.";
+                    statusEl.style.backgroundColor = "#e2e3e5";
+                    statusEl.style.color = "#383d41";
+                } else {
+                    const winnerName = data.winner === "blue" ? data.player1.name : data.player2.name;
+                    statusEl.innerText = `🎉 ${winnerName} 승리! 🎉`;
+                    statusEl.style.backgroundColor = data.winner === "blue" ? "#d4edda" : "#f8d7da";
+                    statusEl.style.color = data.winner === "blue" ? "#155724" : "#721c24";
+                }
+            } else if (data.status === "playing") {
+                if (data.turn === myColor) {
+                    statusEl.innerText = "내 차례입니다! 문장을 맞히고 칸을 고르세요.";
+                    statusEl.style.backgroundColor = myColor === "blue" ? "#d4edda" : "#f8d7da";
+                    statusEl.style.color = myColor === "blue" ? "#155724" : "#721c24";
+                } else {
+                    const oppName = myColor === "blue" ? data.player2.name : data.player1.name;
+                    statusEl.innerText = `상대방(${oppName})의 차례입니다...`;
+                    statusEl.style.backgroundColor = "#e2e3e5";
+                    statusEl.style.color = "#383d41";
+                }
+            }
+            
+            // 로컬 변수에 데이터 캐싱 (클릭 이벤트에서 사용)
+            window.currentGameData = data;
+        }
+
+        // 7. 칸 클릭 이벤트 (보드 업데이트)
+        cells.forEach(cell => {
+            cell.addEventListener('click', async (e) => {
+                if (!currentUser || !currentRoomId || !window.currentGameData) return;
+                
+                const data = window.currentGameData;
+                const index = e.target.getAttribute('data-index');
+
+                // 방어 로직: 게임 중이 아님, 내 차례 아님, 이미 칠해진 칸임
+                if (data.status !== "playing") return;
+                if (data.turn !== myColor) {
+                    showToast("내 차례가 아닙니다!");
+                    return;
+                }
+                if (data.board[index] !== "") {
+                    showToast("이미 선택된 칸입니다.");
+                    return;
+                }
+
+                // 보드 업데이트 로직
+                const newBoard = [...data.board];
+                newBoard[index] = myColor;
+
+                // 승리 체크
+                const winner = checkWin(newBoard);
+                const nextTurn = myColor === "blue" ? "red" : "blue";
+                
+                let newStatus = "playing";
+                if (winner) newStatus = "finished";
+
+                // Firestore에 결과 반영
+                const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
+                try {
+                    await updateDoc(roomRef, {
+                        board: newBoard,
+                        turn: nextTurn,
+                        winner: winner,
+                        status: newStatus
+                    });
+                } catch(error) {
+                    console.error("보드 갱신 에러:", error);
+                    showToast("서버에 반영하지 못했습니다.");
+                }
+            });
+        });
+
+        // 승리 판정 함수
+        function checkWin(board) {
+            const lines = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // 가로
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // 세로
+                [0, 4, 8], [2, 4, 6]             // 대각선
+            ];
+            for (let i = 0; i < lines.length; i++) {
+                const [a, b, c] = lines[i];
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                    return board[a]; // "blue" 또는 "red" 반환
+                }
+            }
+            if (!board.includes("")) return "draw"; // 꽉 찼으면 무승부
+            return null; // 아직 진행 중
+        }
+
+        // 방 나가기 로직
+        document.getElementById('btn-leave').addEventListener('click', () => {
+            resetGame();
+        });
+
+        function resetGame() {
+            if (unsubscribeRoom) {
+                unsubscribeRoom();
+                unsubscribeRoom = null;
+            }
+            currentRoomId = "";
+            myColor = "";
+            window.currentGameData = null;
+            showScreen('lobby');
+        }
+    </script>
+</body>
+</html>
