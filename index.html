@@ -43,7 +43,7 @@
         textarea { font-size: 14px; resize: vertical; }
         select { width: 100%; cursor: pointer; }
         .select-group { display: flex; gap: 10px; width: 100%; }
-        .select-group select { flex: 1; }
+        .select-group select, .select-group div { flex: 1; }
         
         button { 
             width: 100%; padding: 14px; margin-top: 15px; cursor: pointer; 
@@ -93,6 +93,15 @@
         @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
 
         .hidden { display: none !important; }
+
+        .footer {
+            margin-top: 40px;
+            font-size: 12px;
+            color: #888;
+            line-height: 1.6;
+            text-align: center;
+            padding-bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -131,6 +140,7 @@
             <h3 style="margin-top: 0; color: #2c3e50; font-size: 16px;">⚙️ 기본 및 보안 설정</h3>
             <label style="font-weight:bold; font-size:13px; color:#555;">교사 모드 비밀번호</label>
             <input type="text" id="t-password" placeholder="새 비밀번호 (입력 시 변경됨)">
+            
             <div class="select-group" style="margin-top:10px;">
                 <div>
                     <label style="font-weight:bold; font-size:13px; color:#555;">최소 학년</label>
@@ -140,11 +150,18 @@
                     <label style="font-weight:bold; font-size:13px; color:#555;">최대 학년</label>
                     <input type="number" id="t-max-grade" min="1" max="6">
                 </div>
+            </div>
+            <div class="select-group" style="margin-top:10px;">
                 <div>
                     <label style="font-weight:bold; font-size:13px; color:#555;">최대 반</label>
                     <input type="number" id="t-max-class" min="1" max="30">
                 </div>
+                <div>
+                    <label style="font-weight:bold; font-size:13px; color:#555;">문제 풀이 시간 (초)</label>
+                    <input type="number" id="t-time-limit" min="10" max="300" value="60">
+                </div>
             </div>
+            
             <button id="btn-save-settings" class="btn-blue" style="margin-top: 15px; padding: 10px;">기본 설정 저장</button>
         </div>
 
@@ -224,6 +241,11 @@
 
     <div id="toast">메시지</div>
 
+    <div class="footer">
+        만든이: 곽현석(이의초등학교)<br>
+        Copyright &copy; 2026 Eui Elementary School. All Rights Reserved.
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -257,8 +279,9 @@
         const interactionPanel = document.getElementById('interaction-panel');
 
         let currentUser = null, myUserInfo = {}, myColor = "", currentRoomId = "", unsubscribeRoom = null;
-        let globalSettings = { minGrade: 1, maxGrade: 6, maxClass: 10, teacherPassword: "1234" }; 
+        let globalSettings = { minGrade: 1, maxGrade: 6, maxClass: 10, teacherPassword: "1234", timeLimit: 60 }; 
         let unitsData = [];
+        let timerInterval = null;
         window.lastPhaseKey = ""; // UI 리렌더링 방지용 키
 
         function showToast(message) {
@@ -416,6 +439,7 @@
                 document.getElementById('t-min-grade').value = globalSettings.minGrade;
                 document.getElementById('t-max-grade').value = globalSettings.maxGrade;
                 document.getElementById('t-max-class').value = globalSettings.maxClass;
+                document.getElementById('t-time-limit').value = globalSettings.timeLimit || 60;
                 document.getElementById('t-password').value = globalSettings.teacherPassword;
                 document.getElementById('teacher-pwd-input').value = ""; 
                 document.getElementById('teacher-auth-panel').classList.add('hidden');
@@ -432,10 +456,11 @@
             const minG = parseInt(document.getElementById('t-min-grade').value) || 1;
             const maxG = parseInt(document.getElementById('t-max-grade').value) || 6;
             const maxC = parseInt(document.getElementById('t-max-class').value) || 10;
+            const tLimit = parseInt(document.getElementById('t-time-limit').value) || 60;
             const newPwd = document.getElementById('t-password').value.trim();
             if (!newPwd) return showToast("비밀번호를 입력해주세요.");
             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), {
-                minGrade: minG, maxGrade: maxG, maxClass: maxC, teacherPassword: newPwd
+                minGrade: minG, maxGrade: maxG, maxClass: maxC, teacherPassword: newPwd, timeLimit: tLimit
             }, { merge: true });
             showToast("기본 설정이 저장되었습니다.");
         });
@@ -452,7 +477,7 @@
                     board: ["", "", "", "", "", "", "", "", ""],
                     turn: "blue", status: "waiting", winner: null,
                     unitId: selectedUnitId,
-                    turnPhase: "selecting_sentence", // 새 단계 추가 (문제 출제 대기)
+                    turnPhase: "selecting_sentence", 
                     currentQuestion: null
                 });
                 myColor = "blue"; currentRoomId = roomCode;
@@ -480,7 +505,8 @@
         function enterGameRoom(roomCode) {
             showScreen('game');
             document.getElementById('current-room-id').innerText = roomCode;
-            window.lastPhaseKey = ""; // Reset render key
+            window.lastPhaseKey = "";
+            if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
             
             unsubscribeRoom = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode), (snap) => {
                 if (snap.exists()) updateGameUI(snap.data());
@@ -510,9 +536,11 @@
             if (data.status === "waiting") {
                 statusEl.innerText = "상대방을 기다리는 중입니다..."; statusEl.style.backgroundColor = "#fff3cd"; statusEl.style.color = "#856404";
                 interactionPanel.innerHTML = "";
+                if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
                 return;
             } else if (data.status === "finished") {
                 interactionPanel.innerHTML = "";
+                if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
                 if (data.winner === "draw") {
                     statusEl.innerText = "무승부! 게임 종료."; statusEl.style.backgroundColor = "#e2e3e5"; statusEl.style.color = "#383d41";
                 } else {
@@ -524,7 +552,7 @@
 
             // Phase and Turn checking
             const isMyTurn = (data.turn === myColor);
-            const phase = data.turnPhase || 'selecting_cell'; // fallback
+            const phase = data.turnPhase || 'selecting_cell';
             
             if (isMyTurn) {
                 statusEl.innerText = "👉 나의 차례입니다."; statusEl.style.backgroundColor = myColor === "blue" ? "#d4edda" : "#f8d7da"; statusEl.style.color = myColor === "blue" ? "#155724" : "#721c24";
@@ -543,9 +571,12 @@
 
         function renderInteractionPanel(data, isMyTurn, phase) {
             let html = "";
+            const timeLimit = globalSettings.timeLimit || 60;
+
             if (isMyTurn) {
                 // 내 차례일 때
                 if (phase === 'selecting_sentence') {
+                    if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
                     html = `<div style="background:#fff3cd; color:#856404; padding:15px; border-radius:10px; font-weight:bold;">상대방이 문제를 고르고 있습니다. 준비하세요! 🧐</div>`;
                 } else if (phase === 'answering') {
                     const method = data.currentQuestion.method;
@@ -553,9 +584,10 @@
 
                     html = `
                         <div style="background:#eef; padding:15px; border-radius:10px; border:2px solid var(--blue-color);">
+                            <div id="timer-display" style="font-size: 18px; font-weight: bold; color: #e67e22; margin-bottom: 10px;">⏳ 남은 시간: ${timeLimit}초</div>
                             <h4 style="margin:0 0 10px 0; color:#2c3e50;">상대방이 낸 문제 (방식: ${methodText})</h4>
                             <div style="font-size:20px; font-weight:bold; margin-bottom:15px; color:#E24A4A;">"${data.currentQuestion.ko}"</div>
-                            <p style="font-size:13px; color:#666; margin-bottom:10px;">정답을 맞히면 빙고 칸을 선택할 수 있습니다.</p>
+                            <p style="font-size:13px; color:#666; margin-bottom:10px;">정답을 입력/인식한 뒤 반드시 제출하기를 누르세요.</p>
                     `;
 
                     if (method === 'type') {
@@ -570,16 +602,23 @@
                             <div id="speak-area" style="margin-top:10px;">
                                 <button id="btn-start-speak" class="btn-red" style="margin:0; padding:12px;">🎤 클릭하여 말하기 시작</button>
                                 <div id="speech-result" style="margin-top:10px; font-weight:bold; color:var(--blue-color);"></div>
+                                <button id="btn-submit-speak" class="btn-blue hidden" style="margin-top:10px; padding:12px;" data-transcript="">제출하기</button>
                             </div>
                         `;
                     }
                     html += `</div>`;
+                    
+                    // 타이머 시작 (답변자의 화면에서만 처리)
+                    startTimer(data.currentQuestion.startTime, timeLimit, true, data);
+
                 } else if (phase === 'selecting_cell') {
+                    if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
                     html = `<div style="background:#d4edda; color:#155724; padding:15px; border-radius:10px; font-weight:bold; border:2px solid #28a745;">🎉 정답입니다! 빙고판에서 원하는 칸을 터치하세요.</div>`;
                 }
             } else {
                 // 상대방 차례일 때 (내가 출제자)
                 if (phase === 'selecting_sentence') {
+                    if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
                     html = `
                         <div style="background:#fff3cd; padding:15px; border-radius:10px; border:2px solid #ffeeba;">
                             <h4 style="margin:0 0 10px 0; color:#856404;">상대방에게 낼 문제를 클릭하세요!</h4>
@@ -595,12 +634,56 @@
                     `;
                 } else if (phase === 'answering') {
                     const methodText = data.currentQuestion.method === 'type' ? '⌨️ 타자' : '🎤 말하기';
-                    html = `<div style="background:#eef; color:#2c3e50; padding:15px; border-radius:10px;">상대방이 땀을 흘리며 문제를 푸는 중입니다... 💦<br><br><span style="font-size:13px; color:#666;">출제한 문제: ${data.currentQuestion.ko} (방식: ${methodText})</span></div>`;
+                    html = `
+                        <div style="background:#eef; color:#2c3e50; padding:15px; border-radius:10px;">
+                            <div id="timer-display" style="font-size: 18px; font-weight: bold; color: #e67e22; margin-bottom: 10px;">⏳ 남은 시간: ${timeLimit}초</div>
+                            상대방이 땀을 흘리며 문제를 푸는 중입니다... 💦<br><br>
+                            <span style="font-size:13px; color:#666;">출제한 문제: ${data.currentQuestion.ko} (방식: ${methodText})</span>
+                        </div>
+                    `;
+                    // 출제자 화면에서도 타이머 표시는 함 (동기화 역할은 답변자가 함)
+                    startTimer(data.currentQuestion.startTime, timeLimit, false, data);
+
                 } else if (phase === 'selecting_cell') {
+                    if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
                     html = `<div style="background:#f8d7da; color:#721c24; padding:15px; border-radius:10px;">앗! 상대방이 정답을 맞혔습니다.<br>상대방이 칸을 선택하고 있습니다. 😱</div>`;
                 }
             }
             interactionPanel.innerHTML = html;
+        }
+
+        function startTimer(startTime, limit, isMyTurnToAnswer, data) {
+            if (timerInterval) clearInterval(timerInterval);
+            
+            const timerEl = document.getElementById('timer-display');
+            if (!timerEl) return;
+
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                let left = limit - elapsed;
+                
+                if (left <= 0) {
+                    left = 0;
+                    clearInterval(timerInterval);
+                    timerEl.innerText = `⏳ 남은 시간: 0초`;
+                    timerEl.style.color = 'red';
+                    
+                    // 답변자의 기기에서만 시간 초과 액션을 서버로 보냄 (중복 방지)
+                    if (isMyTurnToAnswer) {
+                        handleTimeOver(data);
+                    }
+                } else {
+                    timerEl.innerText = `⏳ 남은 시간: ${left}초`;
+                    if (left <= 10) timerEl.style.color = 'red';
+                }
+            }, 1000);
+        }
+
+        async function handleTimeOver(data) {
+            showToast("⏳ 시간 초과! 기회가 넘어갑니다.");
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
+            const nextTurn = data.turn === 'blue' ? 'red' : 'blue';
+            await updateDoc(roomRef, { turn: nextTurn, turnPhase: 'selecting_sentence', currentQuestion: null });
         }
 
         // 문제 리스트 생성 함수
@@ -638,7 +721,7 @@
                 const en = qItem.getAttribute('data-en');
                 const ko = qItem.getAttribute('data-ko');
                 const method = document.querySelector('input[name="q-method"]:checked').value;
-                await updateDoc(roomRef, { turnPhase: 'answering', currentQuestion: { en, ko, method } });
+                await updateDoc(roomRef, { turnPhase: 'answering', currentQuestion: { en, ko, method, startTime: Date.now() } });
             }
 
             // 2. 자유 모드에서 문제 전송 (출제자)
@@ -647,7 +730,7 @@
                 const ko = document.getElementById('manual-ko').value.trim();
                 const method = document.querySelector('input[name="q-method"]:checked').value;
                 if(!en || !ko) return showToast("정답과 문제를 모두 입력하세요.");
-                await updateDoc(roomRef, { turnPhase: 'answering', currentQuestion: { en, ko, method } });
+                await updateDoc(roomRef, { turnPhase: 'answering', currentQuestion: { en, ko, method, startTime: Date.now() } });
             }
 
             // 3. 타자 정답 제출 (답변자)
@@ -659,6 +742,13 @@
             // 4. 음성 인식 시작 (답변자)
             if (e.target.id === 'btn-start-speak') {
                 startSpeechRecognition(data.currentQuestion.en, roomRef, data);
+            }
+            
+            // 5. 음성 인식 후 명시적 제출 버튼 클릭 (답변자)
+            if (e.target.id === 'btn-submit-speak') {
+                const transcript = e.target.getAttribute('data-transcript');
+                if(!transcript) return showToast("먼저 마이크 버튼을 눌러 말해주세요.");
+                verifyAnswer(transcript, data.currentQuestion.en, roomRef, data);
             }
         });
 
@@ -675,8 +765,7 @@
                 showToast("🎉 완벽합니다! 칸을 선택하세요.");
                 await updateDoc(roomRef, { turnPhase: 'selecting_cell' });
             } else {
-                showToast(`❌ 오답입니다! 정답: ${correctAnswer}`);
-                // 틀리면 즉시 턴 넘김
+                showToast(`❌ 오답입니다! 기회가 넘어갑니다.\n정답: ${correctAnswer}`);
                 const nextTurn = data.turn === 'blue' ? 'red' : 'blue';
                 await updateDoc(roomRef, { turn: nextTurn, turnPhase: 'selecting_sentence', currentQuestion: null });
             }
@@ -685,7 +774,7 @@
         function startSpeechRecognition(correctAnswer, roomRef, data) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
-                showToast("이 브라우저/기기에서는 음성 인식을 지원하지 않습니다. 타자를 이용해주세요.");
+                showToast("이 브라우저/기기에서는 음성 인식을 지원하지 않습니다. PC나 안드로이드 크롬을 사용해주세요.");
                 return;
             }
 
@@ -703,10 +792,15 @@
                 const resEl = document.getElementById('speech-result');
                 resEl.innerHTML = `인식된 문장:<br><span style="color:#333; font-size:18px;">"${transcript}"</span>`;
                 
-                // 1.5초 대기 후 정답 판정 (사용자가 인식된 글을 볼 수 있게)
-                setTimeout(() => {
-                    verifyAnswer(transcript, correctAnswer, roomRef, data);
-                }, 1500);
+                // 음성 인식 후 곧바로 판정하지 않고, 제출 버튼을 표시하여 사용자가 누르게 유도
+                const submitBtn = document.getElementById('btn-submit-speak');
+                if(submitBtn) {
+                    submitBtn.setAttribute('data-transcript', transcript);
+                    submitBtn.classList.remove('hidden');
+                }
+                
+                btn.innerText = "🎤 다시 말하기";
+                btn.style.backgroundColor = "var(--blue-color)";
             };
 
             recognition.onerror = (event) => {
@@ -740,7 +834,7 @@
                 await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId), {
                     board: newBoard,
                     turn: nextTurn,
-                    turnPhase: 'selecting_sentence', // 다음 턴 시작 시 문제 출제 단계로 리셋
+                    turnPhase: 'selecting_sentence',
                     currentQuestion: null,
                     winner: winner,
                     status: newStatus
@@ -760,6 +854,7 @@
 
         document.getElementById('btn-leave').addEventListener('click', resetGame);
         function resetGame() {
+            if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
             if (unsubscribeRoom) { unsubscribeRoom(); unsubscribeRoom = null; }
             currentRoomId = ""; myColor = ""; window.currentGameData = null; window.lastPhaseKey = "";
             showScreen('lobby');
