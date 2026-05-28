@@ -21,6 +21,11 @@
             flex-direction: column;
             min-height: 100vh;
             box-sizing: border-box;
+            /* 전체 텍스트 선택 및 복사 방지 */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
         .container {
             max-width: 400px; 
@@ -46,6 +51,11 @@
             font-size: 16px;
             box-sizing: border-box;
             font-family: inherit;
+            /* 입력창은 텍스트 선택 허용 (예외 처리) */
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
         }
         textarea { font-size: 14px; resize: vertical; }
         select { width: 100%; cursor: pointer; }
@@ -799,7 +809,7 @@
                     if (method === 'type') {
                         html += `
                             <div id="type-area" style="margin-top:10px;">
-                                <input type="text" id="answer-input" placeholder="정확한 영어 문장을 입력하세요" autocomplete="off" spellcheck="false" style="margin-bottom:5px;">
+                                <input type="text" id="answer-input" placeholder="정확한 영어 문장을 입력하세요" autocomplete="off" spellcheck="false" style="margin-bottom:5px;" oncopy="return false;" oncut="return false;" onpaste="return false;" ondrop="return false;">
                                 <button id="btn-submit-answer" class="btn-blue" style="margin:0; padding:12px;">제출하기</button>
                             </div>
                         `;
