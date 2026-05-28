@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>틱택토 문장 챌린지 - 멀티플레이어</title>
+    <title>틱택톡 문장 챌린지 - 멀티플레이어</title>
     <style>
         :root {
             --blue-color: #4A90E2;
@@ -134,7 +134,7 @@
 
     <!-- 1. 정보 입력 화면 -->
     <div class="container hidden" id="login-screen">
-        <h1>틱택토 문장 챌린지</h1>
+        <h1>틱택톡 문장 챌린지</h1>
         <p>내 정보를 입력하고 입장하세요.</p>
         <div class="select-group">
             <select id="grade" required><option value="">학년 선택</option></select>
@@ -823,9 +823,6 @@
                         `;
                     }
                     html += `</div>`;
-                    
-                    // 타이머 시작 (답변자의 화면에서만 처리)
-                    startTimer(data.currentQuestion.startTime, timeLimit, true, data);
 
                 } else if (phase === 'selecting_cell') {
                     if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
@@ -857,30 +854,35 @@
                             <span style="font-size:13px; color:#666;">출제한 문제: ${data.currentQuestion.ko} (방식: ${methodText})</span>
                         </div>
                     `;
-                    // 출제자 화면에서도 타이머 표시는 함 (동기화 역할은 답변자가 함)
-                    startTimer(data.currentQuestion.startTime, timeLimit, false, data);
-
                 } else if (phase === 'selecting_cell') {
                     if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
                     html = `<div style="background:#f8d7da; color:#721c24; padding:15px; border-radius:10px;">앗! 상대방이 정답을 맞혔습니다.<br>상대방이 칸을 선택하고 있습니다. 😱</div>`;
                 }
             }
+            
             interactionPanel.innerHTML = html;
+
+            // DOM이 완전히 렌더링된 이후에 타이머를 실행하도록 변경
+            if (phase === 'answering') {
+                startTimer(data.currentQuestion.startTime, timeLimit, isMyTurn, data);
+            }
         }
 
         function startTimer(startTime, limit, isMyTurnToAnswer, data) {
             if (timerInterval) clearInterval(timerInterval);
             
-            const timerEl = document.getElementById('timer-display');
-            if (!timerEl) return;
+            // 1초 기다리지 않고 즉시 화면을 갱신하기 위해 함수로 분리
+            const updateTick = () => {
+                const timerEl = document.getElementById('timer-display');
+                if (!timerEl) return;
 
-            timerInterval = setInterval(() => {
                 const elapsed = Math.floor((Date.now() - startTime) / 1000);
                 let left = limit - elapsed;
                 
                 if (left <= 0) {
                     left = 0;
                     clearInterval(timerInterval);
+                    timerInterval = null;
                     timerEl.innerText = `⏳ 남은 시간: 0초`;
                     timerEl.style.color = 'red';
                     
@@ -892,7 +894,10 @@
                     timerEl.innerText = `⏳ 남은 시간: ${left}초`;
                     if (left <= 10) timerEl.style.color = 'red';
                 }
-            }, 1000);
+            };
+
+            updateTick(); // 최초 1회 즉시 갱신
+            timerInterval = setInterval(updateTick, 1000); // 이후 1초마다 갱신
         }
 
         async function handleTimeOver(data) {
