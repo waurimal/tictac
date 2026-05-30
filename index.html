@@ -522,6 +522,10 @@
 
     document.getElementById('btn-teacher-entry').addEventListener('click', () => document.getElementById('teacher-auth-panel').classList.toggle('hidden'));
     
+    document.getElementById('teacher-pwd-input').addEventListener('keypress', (e) => {
+        if(e.key === 'Enter') document.getElementById('btn-submit-teacher-pwd').click();
+    });
+
     document.getElementById('btn-submit-teacher-pwd').addEventListener('click', () => {
         if(document.getElementById('teacher-pwd-input').value === globalSettings.teacherPassword) {
             document.getElementById('t-min-grade').value = globalSettings.minGrade;
@@ -675,6 +679,7 @@
     function enterGameRoom(roomCode) {
         showScreen('game');
         currentRoomId = roomCode;
+        document.getElementById('current-room-id').innerText = roomCode;
         window.lastPhaseKey = "";
         document.getElementById('result-overlay').classList.add('hidden');
         if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
