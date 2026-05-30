@@ -509,8 +509,11 @@
 
         if (!grade || !classNum || !studentNum || !name) return showToast("모든 정보를 선택/입력해주세요!");
         
-        // 욕설 필터
-        const bannedWords = ['시발', '씨발', '병신', '개새끼', '좆', '지랄', '미친', '새끼', '존나', '씹', '애미', '애비', '니미', '염병', '호로', 'fuck', 'shit', 'bitch'];
+        // 욕설 필터 (한글 및 영타 오타 포함)
+        const bannedWords = [
+            '시발', '씨발', '병신', '개새끼', '좆', '지랄', '미친', '새끼', '존나', '씹', '애미', '애비', '니미', '염병', '호로', 'fuck', 'shit', 'bitch',
+            'tlqkf', 'Tlqkf', 'qudtls', 'rotoRL', 'whw', 'wlfkf', 'alcls', 'toRL', 'whssk', 'Tlq', 'doal', 'doql', 'slal', 'duaqud', 'ghfh'
+        ];
         if (bannedWords.some(word => name.includes(word))) {
             return showToast("이름에 올바르지 않은 단어가 포함되어 있습니다.");
         }
