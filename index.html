@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>틱택톡 문장 챌린지 - 멀티플레이어</title>
+    <title>틱택토 문장 챌린지 - 멀티플레이어</title>
     <style>
         :root {
             --blue-color: #4A90E2;
             --red-color: #E24A4A;
             --bg-color: #f4f7f6;
         }
+        /* 부정행위(드래그) 방지 */
         body { 
             font-family: 'Pretendard', 'Malgun Gothic', sans-serif; 
             text-align: center; 
@@ -17,16 +18,16 @@
             margin: 0;
             padding: 20px;
             color: #333;
+            user-select: none; /* 드래그 금지 */
+            -webkit-user-select: none;
             display: flex;
             flex-direction: column;
             min-height: 100vh;
-            box-sizing: border-box;
-            /* 전체 텍스트 선택 및 복사 방지 */
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
         }
+        /* 입력창은 선택 가능하도록 예외 처리 */
+        input, textarea { user-select: auto; -webkit-user-select: auto; }
+
+        .container-wrapper { flex: 1; }
         .container {
             max-width: 400px; 
             margin: 0 auto; 
@@ -34,11 +35,8 @@
             padding: 30px 20px; 
             border-radius: 15px; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            max-height: 90vh;
+            max-height: 85vh;
             overflow-y: auto;
-            flex-grow: 1;
-            width: 100%;
-            box-sizing: border-box;
         }
         h1 { font-size: 24px; margin-bottom: 20px; color: #2c3e50; }
         
@@ -51,11 +49,6 @@
             font-size: 16px;
             box-sizing: border-box;
             font-family: inherit;
-            /* 입력창은 텍스트 선택 허용 (예외 처리) */
-            -webkit-user-select: text;
-            -moz-user-select: text;
-            -ms-user-select: text;
-            user-select: text;
         }
         textarea { font-size: 14px; resize: vertical; }
         select { width: 100%; cursor: pointer; }
@@ -72,8 +65,10 @@
         .btn-blue:hover { background-color: #357ABD; }
         .btn-red { background-color: var(--red-color); }
         .btn-red:hover { background-color: #C0392B; }
-        .btn-rps:hover { transform: scale(1.1); }
+        .btn-yellow { background-color: #f39c12; color: white; }
+        .btn-yellow:hover { background-color: #e67e22; }
 
+        /* 게임 화면 관련 */
         #game-info {
             display: flex; justify-content: space-between; align-items: center;
             margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 8px;
@@ -99,196 +94,209 @@
         .cell:active { transform: translateY(2px); box-shadow: inset 0 -2px 0 rgba(0,0,0,0.05); }
         .cell.blue { background-color: var(--blue-color); color: white; }
         .cell.red { background-color: var(--red-color); color: white; }
+
+        /* 가위바위보 버튼 */
+        .rps-btn { font-size: 40px; padding: 10px; margin: 5px; background: white; border: 2px solid #ddd; border-radius: 10px; cursor: pointer; transition: transform 0.2s; }
+        .rps-btn:hover { transform: scale(1.1); border-color: var(--blue-color); }
+        .rps-btn.selected { background: #d4edda; border-color: #28a745; }
         
+        /* 승리 결과 풀스크린 오버레이 */
+        #result-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); z-index: 1000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            color: white; backdrop-filter: blur(5px);
+        }
+        .trophy { font-size: 80px; margin-bottom: 20px; animation: bounce 1s infinite alternate; }
+        @keyframes bounce { from { transform: translateY(0px); } to { transform: translateY(-20px); } }
+
+        /* 하단 푸터 */
+        .footer { margin-top: 20px; padding: 15px; font-size: 12px; color: #999; }
+
         #toast {
             visibility: hidden; min-width: 250px; background-color: #333; color: #fff;
             text-align: center; border-radius: 8px; padding: 16px; position: fixed;
-            z-index: 999; left: 50%; bottom: 30px; transform: translateX(-50%);
+            z-index: 9999; left: 50%; bottom: 30px; transform: translateX(-50%);
             font-size: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
         #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
         @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
         @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
-        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
-
-        /* 푸터 스타일 */
-        footer {
-            margin-top: 20px;
-            padding: 15px 0;
-            text-align: center;
-            font-size: 12px;
-            color: #888;
-            border-top: 1px solid #eaeaea;
-        }
 
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <!-- HTML Structure -->
-    <div class="container" id="loading-screen">
-        <h2>서버에 연결 중입니다...</h2>
-        <p>잠시만 기다려주세요.</p>
-    </div>
-
-    <!-- 1. 정보 입력 화면 -->
-    <div class="container hidden" id="login-screen">
-        <h1>틱택톡 문장 챌린지</h1>
-        <p>내 정보를 입력하고 입장하세요.</p>
-        <div class="select-group">
-            <select id="grade" required><option value="">학년 선택</option></select>
-            <select id="classNum" required><option value="">반 선택</option></select>
-        </div>
-        <input type="number" id="studentNum" placeholder="번호" required>
-        <input type="text" id="studentName" placeholder="이름" required>
-        <button id="btn-login" class="btn-blue">다음 단계로</button>
-        
-        <button id="btn-teacher-entry" style="margin-top:15px; background:none; color:#999; border:none; font-size:13px; cursor:pointer; padding:0; width:auto; text-decoration:underline;">👨‍🏫 교사 설정 모드</button>
-        
-        <div id="teacher-auth-panel" class="hidden" style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #ddd;">
-            <input type="password" id="teacher-pwd-input" placeholder="비밀번호 입력">
-            <button id="btn-submit-teacher-pwd" class="btn-blue" style="padding: 10px; margin-top: 5px;">확인</button>
-        </div>
-    </div>
-
-    <!-- 1-5. 교사 모드 화면 -->
-    <div class="container hidden" id="teacher-screen">
-        <h1>교사 설정 모드</h1>
-        
-        <div style="text-align: left; background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #eee;">
-            <h3 style="margin-top: 0; color: #2c3e50; font-size: 16px;">⚙️ 기본 및 보안 설정</h3>
-            <label style="font-weight:bold; font-size:13px; color:#555;">교사 모드 비밀번호</label>
-            <input type="text" id="t-password" placeholder="새 비밀번호 (입력 시 변경됨)">
-            
-            <div class="select-group" style="margin-top:10px;">
-                <div>
-                    <label style="font-weight:bold; font-size:13px; color:#555;">최소 학년</label>
-                    <input type="number" id="t-min-grade" min="1" max="6">
-                </div>
-                <div>
-                    <label style="font-weight:bold; font-size:13px; color:#555;">최대 학년</label>
-                    <input type="number" id="t-max-grade" min="1" max="6">
-                </div>
-            </div>
-            <div class="select-group" style="margin-top:10px;">
-                <div>
-                    <label style="font-weight:bold; font-size:13px; color:#555;">최대 반</label>
-                    <input type="number" id="t-max-class" min="1" max="30">
-                </div>
-                <div>
-                    <label style="font-weight:bold; font-size:13px; color:#555;">문제 풀이 시간 (초)</label>
-                    <input type="number" id="t-time-limit" min="10" max="300" value="60">
-                </div>
-            </div>
-            
-            <button id="btn-save-settings" class="btn-blue" style="margin-top: 15px; padding: 10px;">기본 설정 저장</button>
+    <div class="container-wrapper">
+        <!-- 서버 로딩 화면 -->
+        <div class="container" id="loading-screen">
+            <h2>서버에 연결 중입니다...</h2>
+            <p>잠시만 기다려주세요.</p>
         </div>
 
-        <div style="text-align: left; background: #eef2f5; padding: 15px; border-radius: 10px; border: 1px solid #dde3e8;">
-            <h3 style="margin-top: 0; color: #2c3e50; font-size: 16px;">📚 단원 및 문장 관리</h3>
-            <select id="t-unit-select">
-                <option value="new">+ 새 단원 추가</option>
-            </select>
-            <input type="text" id="t-unit-name" placeholder="단원명 (예: 1단원. 인사하기)">
-            <textarea id="t-unit-sentences" rows="6" placeholder="영어문장 : 한국어뜻 (엔터로 구분)&#10;예:&#10;What grade are you in? : 너는 몇 학년이니?"></textarea>
-            <button id="btn-save-unit" class="btn-blue" style="margin-top:5px; padding:10px;">현재 작성된 단원 저장</button>
+        <!-- 0. 인트로 (홈) 화면 -->
+        <div class="container hidden" id="intro-screen">
+            <h1 style="font-size: 28px; color: var(--blue-color);">🏆 틱택토 문장 챌린지</h1>
+            <p style="color: #666; margin-bottom: 30px;">환영합니다! 원하는 메뉴를 선택하세요.</p>
             
-            <div id="teacher-unit-list-container" style="margin-top:15px; border-top:1px dashed #b9c6d2; padding-top:15px;">
-                <h4 style="margin:0 0 10px 0; color:#555; font-size: 14px;">저장된 단원 목록 (클릭하여 수정)</h4>
-                <ul id="teacher-unit-list" style="list-style:none; padding:0; margin:0; font-size:14px; max-height:120px; overflow-y:auto;">
-                    <!-- JS 생성 -->
-                </ul>
+            <button id="btn-go-login" class="btn-blue" style="padding: 20px; font-size: 18px; margin-bottom: 10px;">🎮 게임하기</button>
+            <button id="btn-go-hof" class="btn-yellow" style="padding: 20px; font-size: 18px;">👑 명예의 전당</button>
+            
+            <!-- 교사 모드 진입부 -->
+            <button id="btn-intro-teacher" style="margin-top:30px; background:none; color:#999; border:none; font-size:13px; cursor:pointer; padding:0; width:auto; text-decoration:underline;">👨‍🏫 교사 설정 모드</button>
+            <div id="teacher-auth-panel" class="hidden" style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #ddd;">
+                <input type="password" id="teacher-pwd-input" placeholder="비밀번호 입력">
+                <button id="btn-submit-teacher-pwd" class="btn-blue" style="padding: 10px; margin-top: 5px;">확인</button>
             </div>
         </div>
-        
-        <button id="btn-close-teacher" style="margin-top:15px; background-color:#95a5a6;">대기실로 돌아가기</button>
+
+        <!-- 0-1. 명예의 전당 화면 -->
+        <div class="container hidden" id="hof-screen">
+            <h1>👑 명예의 전당</h1>
+            <p style="font-size: 13px; color: #666;">조건을 선택하여 순위를 확인하세요.</p>
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                <select id="hof-unit-select" style="margin-bottom: 10px;">
+                    <option value="all">📚 전체 단원 종합 승수</option>
+                </select>
+                <div class="select-group">
+                    <select id="hof-grade-select"><option value="all">전체 학년</option></select>
+                    <select id="hof-class-select"><option value="all">전체 반</option></select>
+                </div>
+            </div>
+
+            <div id="hof-list-container" style="background: white; border: 1px solid #eee; border-radius: 10px; padding: 15px; min-height: 200px; max-height: 300px; overflow-y: auto;">
+                <!-- 랭킹 리스트 동적 생성 -->
+            </div>
+            
+            <button id="btn-hof-back" style="margin-top:20px; background-color:#95a5a6;">메인으로 돌아가기</button>
+        </div>
+
+        <!-- 1. 정보 입력 화면 (로그인) -->
+        <div class="container hidden" id="login-screen">
+            <h1>학생 정보 입력</h1>
+            <p>내 정보를 입력하고 게임 대기실로 입장하세요.</p>
+            <div class="select-group">
+                <select id="grade" required><option value="">학년 선택</option></select>
+                <select id="classNum" required><option value="">반 선택</option></select>
+            </div>
+            <input type="number" id="studentNum" placeholder="번호" required>
+            <input type="text" id="studentName" placeholder="이름" required>
+            <button id="btn-login" class="btn-blue">다음 단계로</button>
+            <button id="btn-login-back" style="margin-top:15px; background-color:transparent; color:#999;">뒤로 가기</button>
+        </div>
+
+        <!-- 1-5. 교사 설정 모드 화면 -->
+        <div class="container hidden" id="teacher-screen">
+            <h1>교사 설정 모드</h1>
+            <div style="text-align: left; background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #eee;">
+                <h3 style="margin-top: 0; color: #2c3e50; font-size: 16px;">⚙️ 기본 및 보안 설정</h3>
+                <label style="font-weight:bold; font-size:13px; color:#555;">교사 모드 비밀번호</label>
+                <input type="text" id="t-password" placeholder="새 비밀번호 (입력 시 변경됨)">
+                
+                <div class="select-group" style="margin-top:10px;">
+                    <div><label style="font-weight:bold; font-size:13px; color:#555;">최소 학년</label><input type="number" id="t-min-grade" min="1" max="6"></div>
+                    <div><label style="font-weight:bold; font-size:13px; color:#555;">최대 학년</label><input type="number" id="t-max-grade" min="1" max="6"></div>
+                </div>
+                <div class="select-group" style="margin-top:10px;">
+                    <div><label style="font-weight:bold; font-size:13px; color:#555;">최대 반</label><input type="number" id="t-max-class" min="1" max="30"></div>
+                    <div><label style="font-weight:bold; font-size:13px; color:#555;">문제 풀이 시간 (초)</label><input type="number" id="t-time-limit" min="10" max="300" value="60"></div>
+                </div>
+                <button id="btn-save-settings" class="btn-blue" style="margin-top: 15px; padding: 10px;">기본 설정 저장</button>
+            </div>
+
+            <div style="text-align: left; background: #eef2f5; padding: 15px; border-radius: 10px; border: 1px solid #dde3e8;">
+                <h3 style="margin-top: 0; color: #2c3e50; font-size: 16px;">📚 단원 및 문장 관리</h3>
+                <select id="t-unit-select"><option value="new">+ 새 단원 추가</option></select>
+                <input type="text" id="t-unit-name" placeholder="단원명 (예: 1단원. 인사하기)">
+                <textarea id="t-unit-sentences" rows="6" placeholder="영어문장 : 한국어뜻 (엔터로 구분)&#10;예:&#10;What grade are you in? : 너는 몇 학년이니?"></textarea>
+                <button id="btn-save-unit" class="btn-blue" style="margin-top:5px; padding:10px;">현재 작성된 단원 저장</button>
+                <div id="teacher-unit-list-container" style="margin-top:15px; border-top:1px dashed #b9c6d2; padding-top:15px;">
+                    <h4 style="margin:0 0 10px 0; color:#555; font-size: 14px;">저장된 단원 목록 (클릭하여 수정)</h4>
+                    <ul id="teacher-unit-list" style="list-style:none; padding:0; margin:0; font-size:14px; max-height:120px; overflow-y:auto;"></ul>
+                </div>
+            </div>
+            <button id="btn-close-teacher" style="margin-top:15px; background-color:#95a5a6;">메인으로 돌아가기</button>
+        </div>
+
+        <!-- 2. 대기실 (방 생성/참여) 화면 -->
+        <div class="container hidden" id="lobby-screen">
+            <h1>멀티플레이 대기실</h1>
+            <p id="lobby-greeting"></p>
+            
+            <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+                <h3>새로운 게임 만들기</h3>
+                <p style="font-size: 13px; color: #666; margin-bottom:10px;">플레이할 단원을 선택하고 방을 만드세요.</p>
+                <select id="create-room-unit" style="margin-bottom: 10px;"><option value="free">단원 선택 (자유 문장)</option></select>
+                <button id="btn-create-room" class="btn-blue" style="margin-top:0;">방 만들기</button>
+            </div>
+
+            <div style="margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+                <h3>게임 참여하기</h3>
+                <p style="font-size: 13px; color: #666;">친구의 방 코드를 입력하세요.</p>
+                <input type="text" id="join-room-code" placeholder="4자리 방 코드 입력" maxlength="4">
+                <button id="btn-join-room" class="btn-red">입장하기</button>
+            </div>
+            <button id="btn-lobby-back" style="margin-top:15px; background-color:transparent; color:#999;">메인으로 돌아가기</button>
+        </div>
+
+        <!-- 3. 게임 화면 -->
+        <div class="container hidden" id="game-screen">
+            <div id="room-code-display">방 코드: <span id="current-room-id" style="color:var(--blue-color)">----</span></div>
+            
+            <div id="game-info">
+                <div id="player1-info" class="player-badge badge-blue">대기 중...</div>
+                <div style="font-weight: bold; color: #999;">VS</div>
+                <div id="player2-info" class="player-badge badge-red" style="background-color: #ccc;">대기 중...</div>
+            </div>
+
+            <div id="turn-status">방에 입장했습니다.</div>
+            
+            <!-- 이번 게임 문장 리스트 보기 -->
+            <button id="btn-toggle-sentences" style="margin-top:5px; background-color:#17a2b8; padding:8px; font-size:13px; border-radius:5px;">📖 이번 게임 문장 보기</button>
+            <div id="sentence-list-container" class="hidden" style="margin-top:10px; padding:12px; background:#fff; border:1px solid #17a2b8; border-radius:8px; text-align:left; font-size:14px; max-height:150px; overflow-y:auto; line-height: 1.5;"></div>
+
+            <!-- 실시간 상호작용 패널 (가위바위보 / 문제 내기 / 풀기) -->
+            <div id="interaction-panel"></div>
+
+            <!-- 빙고판 -->
+            <div id="board">
+                <div class="cell" data-index="0"></div>
+                <div class="cell" data-index="1"></div>
+                <div class="cell" data-index="2"></div>
+                <div class="cell" data-index="3"></div>
+                <div class="cell" data-index="4"></div>
+                <div class="cell" data-index="5"></div>
+                <div class="cell" data-index="6"></div>
+                <div class="cell" data-index="7"></div>
+                <div class="cell" data-index="8"></div>
+            </div>
+            
+            <button id="btn-leave" style="margin-top:20px; background-color:#95a5a6;">나가기</button>
+        </div>
+    </div> <!-- //container-wrapper -->
+
+    <!-- 승리 오버레이 -->
+    <div id="result-overlay" class="hidden">
+        <div class="trophy">🏆</div>
+        <h1 id="result-title" style="color:white; font-size:36px; margin:0;">승리!</h1>
+        <p id="result-desc" style="font-size:18px; margin-top:10px; color:#ddd;"></p>
+        <button id="btn-result-close" class="btn-blue" style="width:200px; margin-top:30px; font-size:18px;">대기실로 가기</button>
     </div>
 
-    <!-- 2. 대기실 (방 생성/참여) 화면 -->
-    <div class="container hidden" id="lobby-screen">
-        <h1>멀티플레이 대기실</h1>
-        <p id="lobby-greeting"></p>
-        
-        <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
-            <h3>새로운 게임 만들기</h3>
-            <p style="font-size: 13px; color: #666; margin-bottom:10px;">플레이할 단원을 선택하고 방을 만드세요. (방을 만든 사람이 <b>파란색 펜</b>을 사용합니다.)</p>
-            <select id="create-room-unit" style="margin-bottom: 10px;">
-                <option value="">단원 선택 (자유 문장)</option>
-            </select>
-            <button id="btn-create-room" class="btn-blue" style="margin-top:0;">방 만들기</button>
-        </div>
-
-        <div style="margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
-            <h3>게임 참여하기</h3>
-            <p style="font-size: 13px; color: #666;">친구의 방 코드를 입력하세요. (참여자는 <b>빨간색 펜</b>을 사용합니다.)</p>
-            <input type="text" id="join-room-code" placeholder="4자리 방 코드 입력" maxlength="4">
-            <button id="btn-join-room" class="btn-red">입장하기</button>
-        </div>
-    </div>
-
-    <!-- 3. 게임 화면 -->
-    <div class="container hidden" id="game-screen">
-        <div id="room-code-display">방 코드: <span id="current-room-id" style="color:var(--blue-color)">----</span></div>
-        
-        <div id="game-info">
-            <div id="player1-info" class="player-badge badge-blue">대기 중...</div>
-            <div style="font-weight: bold; color: #999;">VS</div>
-            <div id="player2-info" class="player-badge badge-red" style="background-color: #ccc;">대기 중...</div>
-        </div>
-
-        <div id="turn-status">방에 입장했습니다.</div>
-        
-        <div class="instruction" style="margin-bottom: 5px;">
-            <strong>게임 룰:</strong> 상대가 낸 문제를 확인하고 올바르게 답을 제출하세요! 맞히면 원하는 칸을 차지합니다. (틀리면 기회가 넘어갑니다.)
-        </div>
-        
-        <!-- 실시간 상호작용 패널 (문제 내기/풀기/가위바위보) -->
-        <div id="interaction-panel"></div>
-
-        <!-- 빙고판 -->
-        <div id="board">
-            <div class="cell" data-index="0"></div>
-            <div class="cell" data-index="1"></div>
-            <div class="cell" data-index="2"></div>
-            <div class="cell" data-index="3"></div>
-            <div class="cell" data-index="4"></div>
-            <div class="cell" data-index="5"></div>
-            <div class="cell" data-index="6"></div>
-            <div class="cell" data-index="7"></div>
-            <div class="cell" data-index="8"></div>
-        </div>
-        
-        <!-- 문장 리스트 보기 (게임 중) -->
-        <button id="btn-toggle-sentences" style="margin-top:15px; background-color:#17a2b8; padding:10px; font-size:14px;">📖 전체 문장 리스트 보기</button>
-        <div id="sentence-list-container" class="hidden" style="margin-top:10px; padding:12px; background:#fff; border:1px solid #17a2b8; border-radius:8px; text-align:left; font-size:14px; max-height:200px; overflow-y:auto; line-height: 1.5;">
-            <!-- 문장 목록이 여기에 표시됩니다 -->
-        </div>
-
-        <button id="btn-leave" style="margin-top:20px; background-color:#95a5a6;">방 나가기</button>
-    </div>
-
-    <!-- 4. 결과 화면 -->
-    <div class="container hidden" id="result-screen">
-        <div id="result-icon" style="font-size: 80px; margin: 20px 0; animation: bounce 1s infinite;">🏆</div>
-        <h1 id="result-title" style="font-size: 36px; margin-bottom: 10px;">게임 종료</h1>
-        <p id="result-message" style="font-size: 18px; font-weight: bold; margin-bottom: 30px; color: #555;"></p>
-        <button id="btn-back-to-lobby" class="btn-blue" style="padding: 16px; font-size: 18px;">대기실로 돌아가기</button>
+    <!-- 하단 제작자 표시 (푸터) -->
+    <div class="footer">
+        만든이: 곽현석(이의초등학교)<br>
+        Copyright © 2026 Eui Elementary School. All Rights Reserved.
     </div>
 
     <div id="toast">메시지</div>
 
-    <!-- 하단 제작자 정보 -->
-    <footer>
-        <p>만든이: 곽현석(이의초등학교)</p>
-        <p>Copyright &copy; 2026 Eui Elementary School. All Rights Reserved.</p>
-    </footer>
-
-    <!-- Firebase Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, onSnapshot, getDocs, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // 환경 변수 연동
         const firebaseConfig = {
@@ -306,23 +314,27 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // UI 캐싱
         const screens = {
             loading: document.getElementById('loading-screen'),
+            intro: document.getElementById('intro-screen'),
+            hof: document.getElementById('hof-screen'),
             login: document.getElementById('login-screen'),
             teacher: document.getElementById('teacher-screen'),
             lobby: document.getElementById('lobby-screen'),
-            game: document.getElementById('game-screen'),
-            result: document.getElementById('result-screen')
+            game: document.getElementById('game-screen')
         };
         const cells = document.querySelectorAll('.cell');
         const toastEl = document.getElementById('toast');
         const interactionPanel = document.getElementById('interaction-panel');
 
+        // 상태 변수
         let currentUser = null, myUserInfo = {}, myColor = "", currentRoomId = "", unsubscribeRoom = null;
         let globalSettings = { minGrade: 1, maxGrade: 6, maxClass: 10, teacherPassword: "1234", timeLimit: 60 }; 
         let unitsData = [];
         let timerInterval = null;
-        window.lastPhaseKey = ""; 
+        window.lastPhaseKey = "";
+        window.resultOverlayShown = false;
 
         function showToast(message) {
             toastEl.innerText = message;
@@ -351,7 +363,7 @@
             if (user) {
                 currentUser = user;
                 initSettingsListener();
-                showScreen('login');
+                showScreen('intro'); // 첫 화면은 인트로
             }
         });
         initAuth();
@@ -369,27 +381,40 @@
         }
 
         function updateDropdowns() {
-            const gradeSelect = document.getElementById('grade');
-            const classSelect = document.getElementById('classNum');
-            const cG = gradeSelect.value, cC = classSelect.value;
+            const gradeSelects = [document.getElementById('grade'), document.getElementById('hof-grade-select')];
+            const classSelects = [document.getElementById('classNum'), document.getElementById('hof-class-select')];
 
-            gradeSelect.innerHTML = '<option value="">학년 선택</option>';
-            for(let i = globalSettings.minGrade; i <= globalSettings.maxGrade; i++) gradeSelect.innerHTML += `<option value="${i}">${i}학년</option>`;
+            gradeSelects.forEach(select => {
+                if(!select) return;
+                const cVal = select.value;
+                select.innerHTML = select.id.includes('hof') ? '<option value="all">전체 학년</option>' : '<option value="">학년 선택</option>';
+                for(let i = globalSettings.minGrade; i <= globalSettings.maxGrade; i++) select.innerHTML += `<option value="${i}">${i}학년</option>`;
+                if(cVal) select.value = cVal;
+            });
+
+            classSelects.forEach(select => {
+                if(!select) return;
+                const cVal = select.value;
+                select.innerHTML = select.id.includes('hof') ? '<option value="all">전체 반</option>' : '<option value="">반 선택</option>';
+                for(let i = 1; i <= globalSettings.maxClass; i++) select.innerHTML += `<option value="${i}">${i}반</option>`;
+                if(cVal) select.value = cVal;
+            });
             
-            classSelect.innerHTML = '<option value="">반 선택</option>';
-            for(let i = 1; i <= globalSettings.maxClass; i++) classSelect.innerHTML += `<option value="${i}">${i}반</option>`;
-
-            if (cG) gradeSelect.value = cG;
-            if (cC) classSelect.value = cC;
+            // HoF 필터 변경 시 리로드
+            document.getElementById('hof-grade-select').addEventListener('change', loadHallOfFame);
+            document.getElementById('hof-class-select').addEventListener('change', loadHallOfFame);
         }
 
         function updateUnitDropdowns() {
             const tSelect = document.getElementById('t-unit-select');
             const lSelect = document.getElementById('create-room-unit');
-            const cT = tSelect.value, cL = lSelect.value;
+            const hSelect = document.getElementById('hof-unit-select');
+            
+            const cT = tSelect.value, cL = lSelect.value, cH = hSelect.value;
 
             tSelect.innerHTML = '<option value="new">+ 새 단원 추가 (입력창 비우기)</option>';
-            lSelect.innerHTML = '<option value="">단원 선택 (자유 문장 출제)</option>';
+            lSelect.innerHTML = '<option value="free">단원 선택 (자유 문장 출제)</option>';
+            hSelect.innerHTML = '<option value="all">📚 전체 단원 종합 승수</option>';
             
             const ul = document.getElementById('teacher-unit-list');
             ul.innerHTML = '';
@@ -397,6 +422,7 @@
             unitsData.forEach(unit => {
                 tSelect.innerHTML += `<option value="${unit.id}">${unit.name}</option>`;
                 lSelect.innerHTML += `<option value="${unit.id}">${unit.name}</option>`;
+                hSelect.innerHTML += `<option value="${unit.id}">${unit.name}</option>`;
                 
                 ul.innerHTML += `
                     <li style="display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid #eee; background:#fff; margin-bottom:5px; border-radius:5px;">
@@ -407,6 +433,76 @@
 
             if (cT) tSelect.value = cT;
             if (cL) lSelect.value = cL;
+            if (cH) hSelect.value = cH;
+            
+            hSelect.addEventListener('change', loadHallOfFame);
+        }
+
+        // 화면 네비게이션
+        document.getElementById('btn-go-login').addEventListener('click', () => showScreen('login'));
+        document.getElementById('btn-go-hof').addEventListener('click', () => { showScreen('hof'); loadHallOfFame(); });
+        document.getElementById('btn-hof-back').addEventListener('click', () => showScreen('intro'));
+        document.getElementById('btn-login-back').addEventListener('click', () => showScreen('intro'));
+        document.getElementById('btn-lobby-back').addEventListener('click', () => showScreen('intro'));
+        document.getElementById('btn-close-teacher').addEventListener('click', () => showScreen('intro'));
+
+        // 명예의 전당 (HoF) 로직
+        async function loadHallOfFame() {
+            const container = document.getElementById('hof-list-container');
+            container.innerHTML = '<div style="text-align:center; padding:20px; color:#999;">데이터를 불러오는 중...</div>';
+            
+            try {
+                const lbRef = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
+                const snap = await getDocs(lbRef);
+                let allData = [];
+                snap.forEach(doc => allData.push(doc.data()));
+
+                const unitFilter = document.getElementById('hof-unit-select').value;
+                const gradeFilter = document.getElementById('hof-grade-select').value;
+                const classFilter = document.getElementById('hof-class-select').value;
+
+                // 필터 적용
+                let filtered = allData.filter(d => {
+                    if (gradeFilter !== 'all' && d.grade.toString() !== gradeFilter) return false;
+                    if (classFilter !== 'all' && d.classNum.toString() !== classFilter) return false;
+                    return true;
+                });
+
+                // 점수 계산 (선택된 단원의 승수, all일 경우 총 승수)
+                filtered = filtered.map(d => {
+                    let score = 0;
+                    if (unitFilter === 'all') score = d.totalWins || 0;
+                    else score = (d.unitWins && d.unitWins[unitFilter]) ? d.unitWins[unitFilter] : 0;
+                    return { ...d, score };
+                });
+
+                // 1승 이상인 유저만 점수 내림차순 정렬
+                filtered = filtered.filter(d => d.score > 0);
+                filtered.sort((a, b) => b.score - a.score);
+
+                if (filtered.length === 0) {
+                    container.innerHTML = '<p style="color:#999; text-align:center; margin-top:30px;">조건에 맞는 기록이 없습니다.</p>';
+                    return;
+                }
+
+                let html = '<ul style="list-style:none; padding:0; margin:0;">';
+                filtered.forEach((d, idx) => {
+                    let medal = `<span style="display:inline-block; width:25px; text-align:center; color:#666; font-weight:bold;">${idx+1}</span>`;
+                    if(idx === 0) medal = '🥇'; else if(idx === 1) medal = '🥈'; else if(idx === 2) medal = '🥉';
+
+                    html += `
+                        <li style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid #eee; background:#fff; margin-bottom:5px; border-radius:5px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                            <div style="font-weight:bold; font-size:15px; color:#2c3e50;">${medal} <span style="font-weight:normal; margin:0 5px;">|</span> ${d.grade}학년 ${d.classNum}반 ${d.name}</div>
+                            <div style="color:var(--red-color); font-weight:bold; font-size:16px;">${d.score}승</div>
+                        </li>
+                    `;
+                });
+                html += '</ul>';
+                container.innerHTML = html;
+            } catch (error) {
+                console.error("HoF Load Error:", error);
+                container.innerHTML = '<p style="color:red; text-align:center;">데이터를 불러오지 못했습니다.</p>';
+            }
         }
 
         window.loadTeacherUnit = (id) => {
@@ -417,7 +513,6 @@
         };
 
         window.deleteTeacherUnit = async (id) => {
-            if(!confirm("정말 이 단원을 삭제하시겠습니까?")) return;
             let newItems = unitsData.filter(u => u.id !== id);
             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'units'), { items: newItems });
             showToast("단원이 삭제되었습니다.");
@@ -446,34 +541,17 @@
             if(!name || !text) return showToast("단원명과 문장을 모두 입력해주세요.");
 
             let newItems = [...unitsData];
-            if (selectedId === 'new') {
-                newItems.push({ id: Date.now().toString(), name, text });
-            } else {
+            if (selectedId === 'new') newItems.push({ id: Date.now().toString(), name, text });
+            else {
                 const idx = newItems.findIndex(u => u.id === selectedId);
                 if (idx > -1) newItems[idx] = { ...newItems[idx], name, text };
             }
-
             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'units'), { items: newItems });
             showToast("단원이 성공적으로 저장되었습니다.");
         });
 
-        document.getElementById('btn-login').addEventListener('click', () => {
-            const grade = document.getElementById('grade').value;
-            const classNum = document.getElementById('classNum').value;
-            const studentNum = document.getElementById('studentNum').value;
-            const name = document.getElementById('studentName').value;
-
-            if (!grade || !classNum || !studentNum || !name) return showToast("모든 정보를 선택/입력해주세요!");
-
-            myUserInfo = { grade, classNum, studentNum, name };
-            document.getElementById('lobby-greeting').innerText = `${grade}학년 ${classNum}반 ${name} 학생, 환영합니다!`;
-            showScreen('lobby');
-        });
-
-        // 교사 로그인 처리
-        document.getElementById('btn-teacher-entry').addEventListener('click', () => {
-            document.getElementById('teacher-auth-panel').classList.toggle('hidden');
-        });
+        // 교사 로그인 처리 (인트로 화면에서)
+        document.getElementById('btn-intro-teacher').addEventListener('click', () => document.getElementById('teacher-auth-panel').classList.toggle('hidden'));
         document.getElementById('btn-submit-teacher-pwd').addEventListener('click', () => {
             const pwd = document.getElementById('teacher-pwd-input').value;
             if(pwd === globalSettings.teacherPassword) {
@@ -492,7 +570,7 @@
                 showToast("비밀번호가 틀렸습니다.");
             }
         });
-        document.getElementById('btn-close-teacher').addEventListener('click', () => showScreen('login'));
+
         document.getElementById('btn-save-settings').addEventListener('click', async () => {
             const minG = parseInt(document.getElementById('t-min-grade').value) || 1;
             const maxG = parseInt(document.getElementById('t-max-grade').value) || 6;
@@ -506,75 +584,54 @@
             showToast("기본 설정이 저장되었습니다.");
         });
 
-        // 3. 방 만들기 (Player 1 - Blue)
+        // 학생 로그인
+        document.getElementById('btn-login').addEventListener('click', () => {
+            const grade = document.getElementById('grade').value;
+            const classNum = document.getElementById('classNum').value;
+            const studentNum = document.getElementById('studentNum').value;
+            const name = document.getElementById('studentName').value;
+            if (!grade || !classNum || !studentNum || !name) return showToast("모든 정보를 선택/입력해주세요!");
+            myUserInfo = { grade, classNum, studentNum, name };
+            document.getElementById('lobby-greeting').innerText = `${grade}학년 ${classNum}반 ${name} 학생, 환영합니다!`;
+            showScreen('lobby');
+        });
+
         document.getElementById('btn-create-room').addEventListener('click', async () => {
             if (!currentUser) return;
-            
             const selectedUnitId = document.getElementById('create-room-unit').value;
-            const selectedUnitName = selectedUnitId ? document.getElementById('create-room-unit').options[document.getElementById('create-room-unit').selectedIndex].text : "자유 문장";
-            
-            // 4자리 랜덤 숫자 코드 생성
             const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
             const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode);
 
             try {
                 await setDoc(roomRef, {
-                    player1: myUserInfo,
-                    player2: null,
+                    player1: myUserInfo, player2: null,
                     board: ["", "", "", "", "", "", "", "", ""],
-                    turn: "blue",
-                    status: "waiting",
-                    winner: null,
+                    turn: "blue", status: "waiting", winner: null,
                     unitId: selectedUnitId,
-                    unitName: selectedUnitName,
-                    rpsPlayer1: null,
-                    rpsPlayer2: null
+                    turnPhase: "rps",  // 가위바위보 시작
+                    p1Choice: null, p2Choice: null,
+                    currentQuestion: null
                 });
-
-                myColor = "blue";
-                currentRoomId = roomCode;
+                myColor = "blue"; currentRoomId = roomCode;
                 enterGameRoom(roomCode);
-            } catch (error) {
-                console.error("방 생성 오류:", error);
-                showToast("방을 만들지 못했습니다.");
-            }
+            } catch (e) { showToast("방을 만들지 못했습니다."); }
         });
 
-        // 4. 방 참여하기 (Player 2 - Red)
         document.getElementById('btn-join-room').addEventListener('click', async () => {
             if (!currentUser) return;
-
             const roomCode = document.getElementById('join-room-code').value.trim();
-            if (roomCode.length !== 4) {
-                showToast("4자리 코드를 입력해주세요.");
-                return;
-            }
-
-            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode);
+            if (roomCode.length !== 4) return showToast("4자리 코드를 입력해주세요.");
             
-            try {
-                const roomSnap = await getDoc(roomRef);
-                if (roomSnap.exists()) {
-                    const roomData = roomSnap.data();
-                    if (roomData.status === "waiting" && !roomData.player2) {
-                        // 참여 성공, 상태 업데이트 (게임 시작 전 가위바위보 상태로 변경)
-                        await updateDoc(roomRef, {
-                            player2: myUserInfo,
-                            status: "rps"
-                        });
-                        myColor = "red";
-                        currentRoomId = roomCode;
-                        enterGameRoom(roomCode);
-                    } else {
-                        showToast("이미 게임이 시작되었거나 꽉 찬 방입니다.");
-                    }
-                } else {
-                    showToast("존재하지 않는 방 코드입니다.");
-                }
-            } catch (error) {
-                console.error("방 참여 오류:", error);
-                showToast("방 입장에 실패했습니다.");
-            }
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode);
+            const roomSnap = await getDoc(roomRef);
+            if (roomSnap.exists()) {
+                const data = roomSnap.data();
+                if (data.status === "waiting" && !data.player2) {
+                    await updateDoc(roomRef, { player2: myUserInfo, status: "rps", turnPhase: "rps" });
+                    myColor = "red"; currentRoomId = roomCode;
+                    enterGameRoom(roomCode);
+                } else showToast("이미 게임이 진행중이거나 방이 꽉 찼습니다.");
+            } else showToast("존재하지 않는 방입니다.");
         });
 
         function enterGameRoom(roomCode) {
@@ -582,6 +639,7 @@
             document.getElementById('current-room-id').innerText = roomCode;
             document.getElementById('sentence-list-container').classList.add('hidden');
             window.lastPhaseKey = "";
+            window.resultOverlayShown = false;
             if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
             
             unsubscribeRoom = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode), (snap) => {
@@ -590,176 +648,136 @@
             });
         }
 
-        // 5-1. 게임 문장 보기 버튼 이벤트
+        // 문장 리스트 토글
         document.getElementById('btn-toggle-sentences').addEventListener('click', () => {
             const container = document.getElementById('sentence-list-container');
             container.classList.toggle('hidden');
         });
 
-        // 6. UI 업데이트 로직 (Firestore 데이터를 바탕으로 화면 갱신)
         function updateGameUI(data) {
-            // 가위바위보 무승부 체크 (이전 상태와 비교)
-            if (window.currentGameData && window.currentGameData.status === "rps" && 
-                window.currentGameData.rpsPlayer1 && window.currentGameData.rpsPlayer2 && 
-                !data.rpsPlayer1 && !data.rpsPlayer2 && data.status === "rps") {
-                showToast("✌️✊✋ 무승부입니다! 다시 선택하세요.");
-            }
-
-            // 가위바위보 결과 판정 로직 (두 명 모두 냈을 때)
-            if (data.status === "rps" && data.rpsPlayer1 && data.rpsPlayer2) {
-                const result = getRPSResult(data.rpsPlayer1, data.rpsPlayer2);
-                const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
-                let updates = {};
-                if (result === "draw") {
-                    updates.rpsPlayer1 = null;
-                    updates.rpsPlayer2 = null;
-                } else {
-                    const winnerColor = result === "p1" ? "blue" : "red";
-                    const winnerName = result === "p1" ? data.player1.name : data.player2.name;
-                    showToast(`🎉 가위바위보 결과: ${winnerName} 승리! 선공입니다.`);
-                    updates.status = "playing";
-                    updates.turn = winnerColor;
-                    updates.turnPhase = "selecting_sentence";
-                    updates.rpsPlayer1 = null;
-                    updates.rpsPlayer2 = null;
-                }
-                
-                // 데이터 중복 업데이트를 허용하여 클라이언트 독립성 유지
-                updateDoc(roomRef, updates);
-                
-                interactionPanel.innerHTML = `<div style="background:#eef; padding:15px; border-radius:10px; font-weight:bold; text-align:center;">결과 판정 중... 🎲</div>`;
-                window.currentGameData = data;
-                return;
-            }
-
-            // 플레이어 정보 표시
-            document.getElementById('player1-info').innerText = data.player1 ? data.player1.name : "대기 중...";
+            window.currentGameData = data;
             
+            // Player Info Update
+            document.getElementById('player1-info').innerText = data.player1 ? data.player1.name : "대기 중...";
             const p2Info = document.getElementById('player2-info');
-            if (data.player2) {
-                p2Info.innerText = data.player2.name;
-                p2Info.style.backgroundColor = "var(--red-color)";
-            } else {
-                p2Info.innerText = "대기 중...";
-                p2Info.style.backgroundColor = "#ccc";
-            }
+            if (data.player2) { p2Info.innerText = data.player2.name; p2Info.style.backgroundColor = "var(--red-color)"; } 
+            else { p2Info.innerText = "대기 중..."; p2Info.style.backgroundColor = "#ccc"; }
 
-            // 이번 게임 문장 렌더링 (참조용 리스트)
+            // Sentence List Update
             const sentenceContainer = document.getElementById('sentence-list-container');
-            if (data.unitId) {
+            if (data.unitId && data.unitId !== 'free') {
                 const unit = unitsData.find(u => u.id === data.unitId);
                 if (unit) {
                     const html = unit.text.split('\n').filter(l => l.trim()).map(l => {
                         const parts = l.split(':');
-                        if(parts.length >= 2) {
-                            return `<div style="margin-bottom:6px; border-bottom: 1px dashed #eee; padding-bottom: 4px;"><b>${parts[0].trim()}</b> : <span style="color:#666;">${parts.slice(1).join(':').trim()}</span></div>`;
-                        }
+                        if(parts.length >= 2) return `<div style="margin-bottom:6px; border-bottom: 1px dashed #eee; padding-bottom: 4px;"><b>${parts[0].trim()}</b> : <span style="color:#666;">${parts.slice(1).join(':').trim()}</span></div>`;
                         return `<div style="margin-bottom:6px; border-bottom: 1px dashed #eee; padding-bottom: 4px;">${l.trim()}</div>`;
                     }).join('');
                     sentenceContainer.innerHTML = html || "입력된 문장이 없습니다.";
-                } else {
-                    sentenceContainer.innerHTML = "해당 단원 정보를 찾을 수 없습니다.";
                 }
-            } else {
-                sentenceContainer.innerHTML = "선택된 단원이 없습니다. 자유롭게 문장을 만들어 질문하세요!";
-            }
+            } else sentenceContainer.innerHTML = "자유 문장 출제 모드입니다. 자유롭게 문제를 내보세요!";
 
-            // 보드판 렌더링
+            // Board Update
             data.board.forEach((val, index) => {
                 const cell = cells[index];
-                cell.className = "cell"; // 초기화
-                cell.innerText = "";
-                if (val === "blue") {
-                    cell.classList.add("blue");
-                    cell.innerText = "O";
-                } else if (val === "red") {
-                    cell.classList.add("red");
-                    cell.innerText = "X";
-                }
+                cell.className = "cell"; cell.innerText = "";
+                if (val === "blue") { cell.classList.add("blue"); cell.innerText = "O"; } 
+                else if (val === "red") { cell.classList.add("red"); cell.innerText = "X"; }
             });
 
-            // 상태 메시지 렌더링
             const statusEl = document.getElementById('turn-status');
+
+            // --- Status Routing ---
             if (data.status === "waiting") {
-                statusEl.innerText = "상대방을 기다리는 중입니다...";
-                statusEl.style.backgroundColor = "#fff3cd";
-                statusEl.style.color = "#856404";
+                statusEl.innerText = "상대방을 기다리는 중입니다..."; statusEl.style.backgroundColor = "#fff3cd"; statusEl.style.color = "#856404";
                 interactionPanel.innerHTML = "";
-            } else if (data.status === "rps") {
-                statusEl.innerText = "✌️✊✋ 가위바위보로 선공 정하기!";
-                statusEl.style.backgroundColor = "#eef";
-                statusEl.style.color = "#2c3e50";
-            } else if (data.status === "finished") {
+                return;
+            } 
+            
+            if (data.status === "rps") {
+                statusEl.innerText = "가위바위보로 선공을 정합니다!"; statusEl.style.backgroundColor = "#d1ecf1"; statusEl.style.color = "#0c5460";
+                renderRPSPanel(data);
+                return;
+            }
+
+            if (data.status === "finished") {
                 interactionPanel.innerHTML = "";
                 if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+                statusEl.innerText = "게임 종료!"; statusEl.style.backgroundColor = "#e2e3e5"; statusEl.style.color = "#383d41";
                 
-                // 보드 상단의 상태 우선 변경
-                if (data.winner === "draw") {
-                    statusEl.innerText = "무승부! 게임이 종료되었습니다.";
-                    statusEl.style.backgroundColor = "#e2e3e5";
-                    statusEl.style.color = "#383d41";
-                } else {
-                    const winnerName = data.winner === "blue" ? data.player1.name : data.player2.name;
-                    statusEl.innerText = `🎉 ${winnerName} 승리! 🎉`;
-                    statusEl.style.backgroundColor = data.winner === "blue" ? "#d4edda" : "#f8d7da";
-                    statusEl.style.color = data.winner === "blue" ? "#155724" : "#721c24";
+                // 승패 오버레이 표시 로직 (한 번만 실행되도록)
+                if (!window.resultOverlayShown) {
+                    window.resultOverlayShown = true;
+                    setTimeout(() => showResultOverlay(data), 1500); // 1.5초 후 표시 (빙고 확인시간)
                 }
-                
-                // 1.5초 후 결과 화면으로 전환
-                setTimeout(() => {
-                    if (window.currentGameData && window.currentGameData.status === "finished") {
-                        const resIcon = document.getElementById('result-icon');
-                        const resMsg = document.getElementById('result-message');
-                        const resTitle = document.getElementById('result-title');
-
-                        if (data.winner === "draw") {
-                            resIcon.innerText = "🤝";
-                            resTitle.innerText = "무승부!";
-                            resMsg.innerText = "아쉽게도 승부를 가리지 못했습니다.";
-                            resTitle.style.color = "#383d41";
-                        } else {
-                            const winnerName = data.winner === "blue" ? data.player1.name : data.player2.name;
-                            const isMe = data.winner === myColor;
-                            resIcon.innerText = isMe ? "🏆" : "😭";
-                            resTitle.innerText = isMe ? "승리!" : "패배...";
-                            resMsg.innerText = `🎉 ${winnerName} 학생이 이겼습니다! 🎉`;
-                            resTitle.style.color = isMe ? "var(--blue-color)" : "var(--red-color)";
-                        }
-                        showScreen('result');
-                    }
-                }, 1500);
-                
-                // 로컬 변수에 데이터 캐싱
-                window.currentGameData = data;
                 return;
-            } else if (data.status === "playing") {
-                if (data.turn === myColor) {
-                    statusEl.innerText = "👉 나의 차례입니다.";
-                    statusEl.style.backgroundColor = myColor === "blue" ? "#d4edda" : "#f8d7da";
-                    statusEl.style.color = myColor === "blue" ? "#155724" : "#721c24";
-                } else {
-                    const oppName = myColor === "blue" ? data.player2.name : data.player1.name;
-                    statusEl.innerText = `⏳ 상대방(${oppName})의 차례입니다.`;
-                    statusEl.style.backgroundColor = "#e2e3e5";
-                    statusEl.style.color = "#383d41";
-                }
             }
-            
-            // 로컬 변수에 데이터 캐싱 (클릭 이벤트에서 사용)
-            window.currentGameData = data;
 
-            // Phase and Turn checking
+            // Playing Phase Update
             const isMyTurn = (data.turn === myColor);
             const phase = data.turnPhase || 'selecting_cell';
             
-            // Render Interaction Panel ONLY if state changed to prevent cursor loss during typing
-            const phaseKey = data.status + "_" + data.turn + "_" + phase + "_" + 
-                (data.currentQuestion ? data.currentQuestion.ko + "_" + data.currentQuestion.method : "") +
-                "_" + data.rpsPlayer1 + "_" + data.rpsPlayer2;
-            
+            if (isMyTurn) {
+                statusEl.innerText = "👉 나의 차례입니다."; statusEl.style.backgroundColor = myColor === "blue" ? "#d4edda" : "#f8d7da"; statusEl.style.color = myColor === "blue" ? "#155724" : "#721c24";
+            } else {
+                const oppName = myColor === "blue" ? data.player2.name : data.player1.name;
+                statusEl.innerText = `⏳ 상대방(${oppName})의 차례입니다.`; statusEl.style.backgroundColor = "#e2e3e5"; statusEl.style.color = "#383d41";
+            }
+
+            // Render Panel Only if changed
+            const phaseKey = data.turn + "_" + phase + "_" + (data.currentQuestion ? data.currentQuestion.ko + "_" + data.currentQuestion.method : "");
             if (window.lastPhaseKey !== phaseKey) {
                 window.lastPhaseKey = phaseKey;
                 renderInteractionPanel(data, isMyTurn, phase);
+            }
+        }
+
+        // 가위바위보 패널 렌더링
+        function renderRPSPanel(data) {
+            const myChoice = myColor === 'blue' ? data.p1Choice : data.p2Choice;
+            const oppChoice = myColor === 'blue' ? data.p2Choice : data.p1Choice;
+
+            if (myChoice && !oppChoice) {
+                interactionPanel.innerHTML = `<div style="background:#eef; padding:15px; border-radius:10px;">상대방의 선택을 기다리고 있습니다... ⏳</div>`;
+                return;
+            }
+            if (myChoice && oppChoice) {
+                interactionPanel.innerHTML = `<div style="background:#fff3cd; padding:15px; border-radius:10px; font-weight:bold;">결과 확인 중... 💥</div>`;
+                // 방장(Player1)이 결과 계산 및 업데이트
+                if (myColor === 'blue') evaluateRps(data.p1Choice, data.p2Choice);
+                return;
+            }
+
+            // 선택 버튼 렌더링
+            interactionPanel.innerHTML = `
+                <div style="background:#eef; padding:15px; border-radius:10px; border:2px solid var(--blue-color);">
+                    <h4 style="margin:0 0 10px 0; color:#2c3e50;">가위바위보 선택!</h4>
+                    <button class="rps-btn" data-val="rock">✊</button>
+                    <button class="rps-btn" data-val="paper">🖐️</button>
+                    <button class="rps-btn" data-val="scissors">✌️</button>
+                </div>
+            `;
+            
+            // 이벤트 리스너 부착
+            document.querySelectorAll('.rps-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const choice = e.target.getAttribute('data-val');
+                    const field = myColor === 'blue' ? 'p1Choice' : 'p2Choice';
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId), { [field]: choice });
+                });
+            });
+        }
+
+        async function evaluateRps(p1, p2) {
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
+            if (p1 === p2) {
+                setTimeout(() => updateDoc(roomRef, { p1Choice: null, p2Choice: null }), 1500); // 비기면 초기화
+            } else {
+                let winnerTurn = 'blue';
+                if ((p1==='rock' && p2==='paper') || (p1==='paper' && p2==='scissors') || (p1==='scissors' && p2==='rock')) winnerTurn = 'red';
+                setTimeout(() => {
+                    updateDoc(roomRef, { status: 'playing', turn: winnerTurn, turnPhase: 'selecting_sentence' });
+                }, 1500);
             }
         }
 
@@ -767,49 +785,25 @@
             let html = "";
             const timeLimit = globalSettings.timeLimit || 60;
 
-            if (data.status === "rps") {
-                const isP1 = myColor === "blue";
-                const myChoice = isP1 ? data.rpsPlayer1 : data.rpsPlayer2;
-                
-                if (!myChoice) {
-                    html = `
-                        <div style="background:#fff; padding:20px; border-radius:10px; border:2px solid var(--blue-color); text-align:center;">
-                            <h4 style="margin:0 0 15px 0; color:#2c3e50;">가위바위보를 선택하세요!</h4>
-                            <div style="display:flex; justify-content:center; gap:15px;">
-                                <button class="btn-rps" data-choice="scissors" style="width:70px; height:70px; font-size:35px; border-radius:50%; background:#f8f9fa; border:2px solid #ddd; cursor:pointer; transition:all 0.2s;">✌️</button>
-                                <button class="btn-rps" data-choice="rock" style="width:70px; height:70px; font-size:35px; border-radius:50%; background:#f8f9fa; border:2px solid #ddd; cursor:pointer; transition:all 0.2s;">✊</button>
-                                <button class="btn-rps" data-choice="paper" style="width:70px; height:70px; font-size:35px; border-radius:50%; background:#f8f9fa; border:2px solid #ddd; cursor:pointer; transition:all 0.2s;">✋</button>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    html = `<div style="background:#fff3cd; color:#856404; padding:15px; border-radius:10px; font-weight:bold; text-align:center;">상대방의 가위바위보 선택을 기다리는 중입니다... ⏳</div>`;
-                }
-                interactionPanel.innerHTML = html;
-                return;
-            }
-
-            if (isMyTurn) {
-                // 내 차례일 때 (답변자 또는 칸 선택)
+            if (isMyTurn) { // 내 차례
                 if (phase === 'selecting_sentence') {
                     if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
                     html = `<div style="background:#fff3cd; color:#856404; padding:15px; border-radius:10px; font-weight:bold;">상대방이 문제를 고르고 있습니다. 준비하세요! 🧐</div>`;
                 } else if (phase === 'answering') {
                     const method = data.currentQuestion.method;
                     const methodText = method === 'type' ? '⌨️ 타자로 치기' : '🎤 마이크로 말하기';
-
                     html = `
                         <div style="background:#eef; padding:15px; border-radius:10px; border:2px solid var(--blue-color);">
                             <div id="timer-display" style="font-size: 18px; font-weight: bold; color: #e67e22; margin-bottom: 10px;">⏳ 남은 시간: ${timeLimit}초</div>
                             <h4 style="margin:0 0 10px 0; color:#2c3e50;">상대방이 낸 문제 (방식: ${methodText})</h4>
                             <div style="font-size:20px; font-weight:bold; margin-bottom:15px; color:#E24A4A;">"${data.currentQuestion.ko}"</div>
-                            <p style="font-size:13px; color:#666; margin-bottom:10px;">정답을 입력/인식한 뒤 반드시 제출하기를 누르세요.</p>
                     `;
 
                     if (method === 'type') {
+                        // 복붙 차단 속성 적용 (oncopy, oncut, onpaste, ondrop)
                         html += `
                             <div id="type-area" style="margin-top:10px;">
-                                <input type="text" id="answer-input" placeholder="정확한 영어 문장을 입력하세요" autocomplete="off" spellcheck="false" style="margin-bottom:5px;" oncopy="return false;" oncut="return false;" onpaste="return false;" ondrop="return false;">
+                                <input type="text" id="answer-input" placeholder="정확한 영어 문장을 입력하세요" autocomplete="off" spellcheck="false" style="margin-bottom:5px; font-size:16px;" oncopy="return false;" oncut="return false;" onpaste="return false;" ondrop="return false;">
                                 <button id="btn-submit-answer" class="btn-blue" style="margin:0; padding:12px;">제출하기</button>
                             </div>
                         `;
@@ -823,13 +817,13 @@
                         `;
                     }
                     html += `</div>`;
+                    startTimer(data.currentQuestion.startTime, timeLimit, true, data);
 
                 } else if (phase === 'selecting_cell') {
                     if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
                     html = `<div style="background:#d4edda; color:#155724; padding:15px; border-radius:10px; font-weight:bold; border:2px solid #28a745;">🎉 정답입니다! 빙고판에서 원하는 칸을 터치하세요.</div>`;
                 }
-            } else {
-                // 상대방 차례일 때 (내가 출제자)
+            } else { // 상대방 차례
                 if (phase === 'selecting_sentence') {
                     if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
                     html = `
@@ -854,24 +848,20 @@
                             <span style="font-size:13px; color:#666;">출제한 문제: ${data.currentQuestion.ko} (방식: ${methodText})</span>
                         </div>
                     `;
+                    startTimer(data.currentQuestion.startTime, timeLimit, false, data);
+
                 } else if (phase === 'selecting_cell') {
                     if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
                     html = `<div style="background:#f8d7da; color:#721c24; padding:15px; border-radius:10px;">앗! 상대방이 정답을 맞혔습니다.<br>상대방이 칸을 선택하고 있습니다. 😱</div>`;
                 }
             }
-            
             interactionPanel.innerHTML = html;
-
-            // DOM이 완전히 렌더링된 이후에 타이머를 실행하도록 변경
-            if (phase === 'answering') {
-                startTimer(data.currentQuestion.startTime, timeLimit, isMyTurn, data);
-            }
         }
 
+        // 타이머 동기화 버그 픽스
         function startTimer(startTime, limit, isMyTurnToAnswer, data) {
             if (timerInterval) clearInterval(timerInterval);
             
-            // 1초 기다리지 않고 즉시 화면을 갱신하기 위해 함수로 분리
             const updateTick = () => {
                 const timerEl = document.getElementById('timer-display');
                 if (!timerEl) return;
@@ -885,19 +875,15 @@
                     timerInterval = null;
                     timerEl.innerText = `⏳ 남은 시간: 0초`;
                     timerEl.style.color = 'red';
-                    
-                    // 답변자의 기기에서만 시간 초과 액션을 서버로 보냄 (중복 방지)
-                    if (isMyTurnToAnswer) {
-                        handleTimeOver(data);
-                    }
+                    if (isMyTurnToAnswer) handleTimeOver(data);
                 } else {
                     timerEl.innerText = `⏳ 남은 시간: ${left}초`;
                     if (left <= 10) timerEl.style.color = 'red';
                 }
             };
-
-            updateTick(); // 최초 1회 즉시 갱신
-            timerInterval = setInterval(updateTick, 1000); // 이후 1초마다 갱신
+            
+            updateTick(); // 즉시 1회 실행
+            timerInterval = setInterval(updateTick, 1000); // 이후 1초 간격
         }
 
         async function handleTimeOver(data) {
@@ -907,15 +893,14 @@
             await updateDoc(roomRef, { turn: nextTurn, turnPhase: 'selecting_sentence', currentQuestion: null });
         }
 
-        // 문제 리스트 생성 함수
         function generateQuestionList(unitId) {
-            if (!unitId) {
+            if (!unitId || unitId === 'free') {
                 return `
                     <div style="padding:10px; text-align:left;">
                         <label style="font-size:12px; color:#666;">자유 출제 (영어 정답)</label>
-                        <input type="text" id="manual-en" placeholder="예: I am happy" style="padding:8px; margin:2px 0 10px 0; font-size:14px;">
+                        <input type="text" id="manual-en" placeholder="예: I am happy" style="padding:8px; margin:2px 0 10px 0; font-size:14px;" autocomplete="off">
                         <label style="font-size:12px; color:#666;">문제 (한국어 뜻)</label>
-                        <input type="text" id="manual-ko" placeholder="예: 나는 행복하다" style="padding:8px; margin:2px 0 10px 0; font-size:14px;">
+                        <input type="text" id="manual-ko" placeholder="예: 나는 행복하다" style="padding:8px; margin:2px 0 10px 0; font-size:14px;" autocomplete="off">
                         <button id="btn-send-manual" class="btn-blue" style="margin:0; padding:10px;">이 문제 보내기</button>
                     </div>
                 `;
@@ -936,35 +921,15 @@
             const data = window.currentGameData;
             const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
 
-            // 0. 가위바위보 선택
-            const btnRps = e.target.closest('.btn-rps');
-            if (btnRps && data.status === "rps") {
-                const myChoice = btnRps.getAttribute('data-choice');
-                const isP1 = myColor === "blue";
-                
-                let updates = {};
-                if (isP1) updates.rpsPlayer1 = myChoice;
-                else updates.rpsPlayer2 = myChoice;
-                
-                // 클릭 효과
-                btnRps.style.background = 'var(--blue-color)';
-                btnRps.style.color = '#fff';
-                
-                await updateDoc(roomRef, updates);
-                return;
-            }
-
-            // 1. 문제 리스트에서 클릭하여 전송 (출제자)
             const qItem = e.target.closest('.q-item');
-            if (qItem && data.status === "playing") {
+            if (qItem) {
                 const en = qItem.getAttribute('data-en');
                 const ko = qItem.getAttribute('data-ko');
                 const method = document.querySelector('input[name="q-method"]:checked').value;
                 await updateDoc(roomRef, { turnPhase: 'answering', currentQuestion: { en, ko, method, startTime: Date.now() } });
             }
 
-            // 2. 자유 모드에서 문제 전송 (출제자)
-            if (e.target.id === 'btn-send-manual' && data.status === "playing") {
+            if (e.target.id === 'btn-send-manual') {
                 const en = document.getElementById('manual-en').value.trim();
                 const ko = document.getElementById('manual-ko').value.trim();
                 const method = document.querySelector('input[name="q-method"]:checked').value;
@@ -972,32 +937,32 @@
                 await updateDoc(roomRef, { turnPhase: 'answering', currentQuestion: { en, ko, method, startTime: Date.now() } });
             }
 
-            // 3. 타자 정답 제출 (답변자)
-            if (e.target.id === 'btn-submit-answer' && data.status === "playing") {
+            if (e.target.id === 'btn-submit-answer') {
                 const userInput = document.getElementById('answer-input').value;
                 verifyAnswer(userInput, data.currentQuestion.en, roomRef, data);
             }
 
-            // 4. 음성 인식 시작 (답변자)
-            if (e.target.id === 'btn-start-speak' && data.status === "playing") {
-                startSpeechRecognition(data.currentQuestion.en, roomRef, data);
-            }
+            if (e.target.id === 'btn-start-speak') startSpeechRecognition(data.currentQuestion.en, roomRef, data);
             
-            // 5. 음성 인식 후 명시적 제출 버튼 클릭 (답변자)
-            if (e.target.id === 'btn-submit-speak' && data.status === "playing") {
+            if (e.target.id === 'btn-submit-speak') {
                 const transcript = e.target.getAttribute('data-transcript');
                 if(!transcript) return showToast("먼저 마이크 버튼을 눌러 말해주세요.");
                 verifyAnswer(transcript, data.currentQuestion.en, roomRef, data);
             }
         });
 
+        // 엔터키 제출 지원
+        interactionPanel.addEventListener('keypress', (e) => {
+            if(e.key === 'Enter' && e.target.id === 'answer-input') {
+                document.getElementById('btn-submit-answer').click();
+            }
+        });
+
         async function verifyAnswer(userInput, correctAnswer, roomRef, data) {
-            // 문자열 정규화 (소문자 변환, 특수기호 및 공백 완전 제거)
             const normalize = (str) => {
                 if(!str) return "";
-                return str.toLowerCase().replace(/[^a-z0-9]/g, '');
+                return str.toLowerCase().replace(/[^a-z0-9]/g, ''); // 특수문자, 공백 완전제거 후 소문자 비교
             };
-
             const isCorrect = normalize(userInput) === normalize(correctAnswer);
 
             if (isCorrect) {
@@ -1012,10 +977,7 @@
 
         function startSpeechRecognition(correctAnswer, roomRef, data) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                showToast("이 브라우저/기기에서는 음성 인식을 지원하지 않습니다. PC나 안드로이드 크롬을 사용해주세요.");
-                return;
-            }
+            if (!SpeechRecognition) return showToast("이 브라우저/기기에서는 음성 인식을 지원하지 않습니다.");
 
             const btn = document.getElementById('btn-start-speak');
             btn.innerText = "🎤 듣고 있습니다... 말씀하세요!";
@@ -1031,24 +993,17 @@
                 const resEl = document.getElementById('speech-result');
                 resEl.innerHTML = `인식된 문장:<br><span style="color:#333; font-size:18px;">"${transcript}"</span>`;
                 
-                // 음성 인식 후 곧바로 판정하지 않고, 제출 버튼을 표시하여 사용자가 누르게 유도
                 const submitBtn = document.getElementById('btn-submit-speak');
                 if(submitBtn) {
                     submitBtn.setAttribute('data-transcript', transcript);
                     submitBtn.classList.remove('hidden');
                 }
-                
-                btn.innerText = "🎤 다시 말하기";
-                btn.style.backgroundColor = "var(--blue-color)";
+                btn.innerText = "🎤 다시 말하기"; btn.style.backgroundColor = "var(--blue-color)";
             };
-
-            recognition.onerror = (event) => {
-                console.error("음성 인식 에러", event.error);
+            recognition.onerror = () => {
                 showToast("음성을 인식하지 못했습니다. 버튼을 다시 누르세요.");
-                btn.innerText = "🎤 클릭하여 말하기 시작";
-                btn.style.backgroundColor = "var(--red-color)";
+                btn.innerText = "🎤 클릭하여 말하기 시작"; btn.style.backgroundColor = "var(--red-color)";
             };
-
             recognition.start();
         }
 
@@ -1070,53 +1025,65 @@
                 const nextTurn = myColor === "blue" ? "red" : "blue";
                 let newStatus = winner ? "finished" : "playing";
 
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId), {
-                    board: newBoard,
-                    turn: nextTurn,
-                    turnPhase: 'selecting_sentence',
-                    currentQuestion: null,
-                    winner: winner,
-                    status: newStatus
+                const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
+                await updateDoc(roomRef, {
+                    board: newBoard, turn: nextTurn, turnPhase: 'selecting_sentence',
+                    currentQuestion: null, winner: winner, status: newStatus
                 });
+
+                // 승리 시 명예의 전당 (Leaderboard) 기록 업데이트
+                if (winner === myColor) {
+                    try {
+                        const unitId = data.unitId || 'free';
+                        const lbRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', `${myUserInfo.grade}_${myUserInfo.classNum}_${myUserInfo.studentNum}_${myUserInfo.name}`);
+                        await setDoc(lbRef, {
+                            grade: myUserInfo.grade,
+                            classNum: myUserInfo.classNum,
+                            studentNum: myUserInfo.studentNum,
+                            name: myUserInfo.name,
+                            totalWins: increment(1),
+                            [`unitWins.${unitId}`]: increment(1)
+                        }, { merge: true });
+                    } catch(err) { console.error("Leaderboard Save Error:", err); }
+                }
             });
         });
 
-        // 승리 판정 함수
         function checkWin(board) {
-            const lines = [
-                [0, 1, 2], [3, 4, 5], [6, 7, 8], // 가로
-                [0, 3, 6], [1, 4, 7], [2, 5, 8], // 세로
-                [0, 4, 8], [2, 4, 6]             // 대각선
-            ];
+            const lines = [[0,1,2],[3,4,5],[6,7,8], [0,3,6],[1,4,7],[2,5,8], [0,4,8],[2,4,6]];
             for (let i = 0; i < lines.length; i++) {
                 const [a, b, c] = lines[i];
-                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-                    return board[a]; // "blue" 또는 "red" 반환
-                }
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) return board[a];
             }
-            if (!board.includes("")) return "draw"; // 꽉 찼으면 무승부
-            return null; // 아직 진행 중
+            if (!board.includes("")) return "draw";
+            return null;
         }
 
-        // 가위바위보 승패 판정 함수
-        function getRPSResult(p1, p2) {
-            if (p1 === p2) return "draw";
-            if (
-                (p1 === "rock" && p2 === "scissors") ||
-                (p1 === "scissors" && p2 === "paper") ||
-                (p1 === "paper" && p2 === "rock")
-            ) return "p1";
-            return "p2";
+        // 결과 오버레이 렌더링
+        function showResultOverlay(data) {
+            const overlay = document.getElementById('result-overlay');
+            const titleEl = document.getElementById('result-title');
+            const descEl = document.getElementById('result-desc');
+            
+            overlay.classList.remove('hidden');
+
+            if (data.winner === "draw") {
+                titleEl.innerText = "무승부!"; titleEl.style.color = "#f1c40f";
+                descEl.innerText = "아쉽게도 승부를 가리지 못했습니다.";
+            } else if (data.winner === myColor) {
+                titleEl.innerText = "🎉 승리했습니다! 🎉"; titleEl.style.color = "#2ecc71";
+                descEl.innerText = "명예의 전당에 승리 기록이 1 추가되었습니다!";
+            } else {
+                titleEl.innerText = "패배했습니다... 😭"; titleEl.style.color = "#e74c3c";
+                descEl.innerText = "다음에는 꼭 이길 수 있을 거예요!";
+            }
         }
 
-        // 방 나가기 로직
-        document.getElementById('btn-leave').addEventListener('click', () => {
-            if(confirm("정말 방을 나가시겠습니까?")) resetGame();
-        });
-
-        document.getElementById('btn-back-to-lobby').addEventListener('click', resetGame);
+        document.getElementById('btn-result-close').addEventListener('click', resetGame);
+        document.getElementById('btn-leave').addEventListener('click', resetGame);
 
         function resetGame() {
+            document.getElementById('result-overlay').classList.add('hidden');
             if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
             if (unsubscribeRoom) { unsubscribeRoom(); unsubscribeRoom = null; }
             currentRoomId = ""; myColor = ""; window.currentGameData = null; window.lastPhaseKey = "";
