@@ -659,6 +659,7 @@
         if (roomSnap.exists()) {
             const data = roomSnap.data();
             if (data.status === "waiting" && !data.player2) {
+                // 수정된 부분: 상태를 rps_phase로 변경하여 가위바위보 시작 신호 전송
                 await updateDoc(roomRef, { player2: myUserInfo, status: "rps_phase" });
                 amIPlayer1 = false; currentRoomId = roomCode;
                 enterGameRoom(roomCode);
