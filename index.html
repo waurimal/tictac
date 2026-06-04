@@ -91,13 +91,13 @@
         .rps-btn { font-size: 40px; padding: 10px; margin: 5px; background: white; border: 2px solid #ddd; border-radius: 10px; cursor: pointer; transition: all 0.2s; }
         .rps-btn:hover, .rps-btn.selected { background: #eef; border-color: var(--blue-color); transform: scale(1.1); }
         
-        #result-overlay {
+        #rps-overlay, #result-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); color: white; display: flex;
             flex-direction: column; align-items: center; justify-content: center;
             z-index: 1000; visibility: hidden; opacity: 0; transition: opacity 0.3s;
         }
-        #result-overlay.show { visibility: visible; opacity: 1; }
+        #rps-overlay.show, #result-overlay.show { visibility: visible; opacity: 1; }
         #result-trophy { font-size: 80px; margin-bottom: 20px; animation: bounce 1s infinite; }
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
 
@@ -302,7 +302,7 @@
     </div>
 
     <!-- 가위바위보 오버레이 -->
-    <div id="rps-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); color:white; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:900; visibility:hidden; opacity:0; transition:opacity 0.3s;">
+    <div id="rps-overlay">
         <h2 style="margin-bottom:10px;">✊✌️🖐️ 선공 정하기</h2>
         <p id="rps-status" style="margin-bottom:20px; color:#f1c40f;">안 내면 진 거 가위 바위 보!</p>
         <div id="rps-buttons" style="display:flex; gap:15px; margin-bottom: 20px;">
@@ -714,6 +714,10 @@
             rpsOverlay.classList.add('show');
             const myChoice = amIPlayer1 ? data.p1Choice : data.p2Choice;
             
+            if (!data.p1Choice && !data.p2Choice) {
+                document.getElementById('rps-result-text').innerText = ""; // 초기화
+            }
+            
             if (data.p1Choice && data.p2Choice) {
                 evaluateRPS(data.p1Choice, data.p2Choice); 
             } else if (myChoice) {
@@ -786,31 +790,41 @@
     }
 
     async function evaluateRPS(p1, p2) {
-        if (!amIPlayer1) return; 
-        const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
-        
         if (p1 === p2) {
             document.getElementById('rps-result-text').innerText = "무승부! 다시 선택하세요.";
-            setTimeout(async () => {
-                await updateDoc(roomRef, { p1Choice: null, p2Choice: null });
-            }, 1500);
+            if (amIPlayer1) {
+                setTimeout(async () => {
+                    const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
+                    await updateDoc(roomRef, { p1Choice: null, p2Choice: null });
+                }, 1500);
+            }
             return;
         }
         
         let p1Wins = false;
         if ((p1==='rock' && p2==='scissors') || (p1==='scissors' && p2==='paper') || (p1==='paper' && p2==='rock')) p1Wins = true;
         
-        const p1Color = p1Wins ? "blue" : "red";
-        const p2Color = p1Wins ? "red" : "blue";
-        const startingTurn = p1Wins ? "player1" : "player2"; // 이긴 사람이 무조건 선공(첫 턴)
+        const amIWinner = amIPlayer1 ? p1Wins : !p1Wins;
+        document.getElementById('rps-result-text').innerText = amIWinner ? "🎉 승리! 선공(파란색)입니다." : "아쉽네요. 후공(빨간색)입니다.";
         
-        await updateDoc(roomRef, { 
-            status: "playing", 
-            turn: startingTurn,
-            turnPhase: "selecting_sentence",
-            p1Color: p1Color,
-            p2Color: p2Color
-        });
+        if (amIPlayer1) {
+            const p1Color = p1Wins ? "blue" : "red";
+            const p2Color = p1Wins ? "red" : "blue";
+            const startingTurn = p1Wins ? "player1" : "player2"; // 이긴 사람이 무조건 선공(첫 턴)
+            
+            setTimeout(async () => {
+                const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
+                await updateDoc(roomRef, { 
+                    status: "playing", 
+                    turn: startingTurn,
+                    turnPhase: "selecting_sentence",
+                    p1Color: p1Color,
+                    p2Color: p2Color,
+                    p1Choice: null,
+                    p2Choice: null
+                });
+            }, 1500);
+        }
     }
 
     function renderInteractionPanel(data, isMyTurn, phase) {
