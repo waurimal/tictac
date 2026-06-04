@@ -624,7 +624,7 @@
         } catch(e) { console.error(e); showToast("삭제 중 오류가 발생했습니다."); }
     });
 
-    // 방 만들기 (가위바위보 시작 상태로 생성)
+    // 방 만들기 (새로운 턴 구조 적용)
     document.getElementById('btn-create-room').addEventListener('click', async () => {
         if (!currentUser) return;
         const selectedUnitId = document.getElementById('create-room-unit').value;
@@ -640,7 +640,7 @@
                 unitId: selectedUnitId === 'all' ? null : selectedUnitId,
                 unitName: selectedUnitName,
                 p1Choice: null, p2Choice: null,
-                p1Color: "blue", p2Color: "red" // 기본값 설정 (가위바위보 후 재지정)
+                turn: "player1" // 색상 대신 플레이어 키로 턴 관리
             });
             amIPlayer1 = true;
             currentRoomId = roomCode;
@@ -686,7 +686,6 @@
             if (!window.currentGameData || window.currentGameData.status !== "rps_phase") return;
             const choice = e.currentTarget.getAttribute('data-choice');
             
-            // UI 시각 효과
             document.querySelectorAll('.rps-btn').forEach(b => b.classList.remove('selected'));
             e.currentTarget.classList.add('selected');
             document.getElementById('rps-status').innerText = "선택 완료! 상대방을 기다리는 중...";
@@ -697,10 +696,11 @@
         });
     });
 
+    // 턴 로직 전면 개편
     function updateGameUI(data) {
         window.currentGameData = data;
+        const myPlayerKey = amIPlayer1 ? "player1" : "player2";
         
-        // 1. 상태 분기: 대기 중
         if (data.status === "waiting") {
             document.getElementById('player1-info').innerText = data.player1 ? data.player1.name : "대기 중...";
             document.getElementById('player2-info').innerText = "대기 중...";
@@ -709,14 +709,12 @@
             return;
         }
 
-        // 2. 상태 분기: 가위바위보 (RPS Phase)
         if (data.status === "rps_phase") {
             rpsOverlay.classList.add('show');
             const myChoice = amIPlayer1 ? data.p1Choice : data.p2Choice;
-            const oppChoice = amIPlayer1 ? data.p2Choice : data.p1Choice;
             
             if (data.p1Choice && data.p2Choice) {
-                evaluateRPS(data.p1Choice, data.p2Choice); // 양쪽 모두 제출 시 평가
+                evaluateRPS(data.p1Choice, data.p2Choice); 
             } else if (myChoice) {
                 document.getElementById('rps-status').innerText = "선택 완료! 상대방을 기다리는 중...";
             } else {
@@ -728,8 +726,7 @@
             rpsOverlay.classList.remove('show');
         }
 
-        // 3. 게임 중 (playing) 또는 종료 (finished) 로직
-        // 가위바위보 승자에게 부여된 고유 색상(파란색/빨간색) 고정 적용
+        // 색상 동기화 (가위바위보 승패 기반)
         window.myColor = amIPlayer1 ? data.p1Color : data.p2Color;
 
         document.getElementById('player1-info').innerText = data.player1.name;
@@ -738,7 +735,6 @@
         document.getElementById('player2-info').className = `player-badge badge-${data.p2Color}`;
         document.getElementById('player1-info').style.backgroundColor = ""; document.getElementById('player2-info').style.backgroundColor = "";
 
-        // 보드판 렌더링
         data.board.forEach((val, index) => {
             const cell = cells[index];
             cell.className = "cell"; cell.innerText = "";
@@ -752,27 +748,33 @@
             interactionPanel.innerHTML = "";
             if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
             
-            // 결과 오버레이 1.5초 후 표시
             setTimeout(() => { showResultOverlay(data); }, 1500);
             
             if (data.winner === "draw") {
                 statusEl.innerText = "무승부! 게임 종료."; statusEl.style.backgroundColor = "#e2e3e5"; statusEl.style.color = "#383d41";
             } else {
-                const winnerName = (data.winner === data.p1Color) ? data.player1.name : data.player2.name;
-                statusEl.innerText = `🎉 ${winnerName} 승리! 🎉`; statusEl.style.backgroundColor = data.winner === "blue" ? "#d4edda" : "#f8d7da"; statusEl.style.color = data.winner === "blue" ? "#155724" : "#721c24";
+                const winnerName = (data.winner === "player1") ? data.player1.name : data.player2.name;
+                const winnerColor = (data.winner === "player1") ? data.p1Color : data.p2Color;
+                statusEl.innerText = `🎉 ${winnerName} 승리! 🎉`; 
+                statusEl.style.backgroundColor = winnerColor === "blue" ? "#d4edda" : "#f8d7da"; 
+                statusEl.style.color = winnerColor === "blue" ? "#155724" : "#721c24";
             }
             return;
         }
 
-        // 진행 중 상태 UI 표시
-        const realMyTurn = (data.turn === window.myColor);
+        // 색상이 아닌 식별자로 완벽한 턴 계산
+        const realMyTurn = (data.turn === myPlayerKey);
         const phase = data.turnPhase || 'selecting_cell';
         
         if (realMyTurn) {
-            statusEl.innerText = "👉 나의 차례입니다."; statusEl.style.backgroundColor = window.myColor === "blue" ? "#d4edda" : "#f8d7da"; statusEl.style.color = window.myColor === "blue" ? "#155724" : "#721c24";
+            statusEl.innerText = "👉 나의 차례입니다. (문제를 맞히고 칸을 고르세요)"; 
+            statusEl.style.backgroundColor = window.myColor === "blue" ? "#d4edda" : "#f8d7da"; 
+            statusEl.style.color = window.myColor === "blue" ? "#155724" : "#721c24";
         } else {
-            const oppName = (window.myColor === data.p1Color) ? data.player2.name : data.player1.name;
-            statusEl.innerText = `⏳ 상대방(${oppName})의 차례입니다.`; statusEl.style.backgroundColor = "#e2e3e5"; statusEl.style.color = "#383d41";
+            const oppName = amIPlayer1 ? data.player2.name : data.player1.name;
+            statusEl.innerText = `⏳ ${oppName}의 차례입니다. (상대에게 문제를 내세요!)`; 
+            statusEl.style.backgroundColor = "#e2e3e5"; 
+            statusEl.style.color = "#383d41";
         }
 
         const phaseKey = data.turn + "_" + phase + "_" + (data.currentQuestion ? data.currentQuestion.ko + "_" + data.currentQuestion.method : "");
@@ -783,11 +785,10 @@
     }
 
     async function evaluateRPS(p1, p2) {
-        if (!amIPlayer1) return; // 방장(Player1) 클라이언트에서만 판정하여 업데이트 충돌 방지
+        if (!amIPlayer1) return; 
         const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
         
         if (p1 === p2) {
-            // 무승부 시 다시
             document.getElementById('rps-result-text').innerText = "무승부! 다시 선택하세요.";
             setTimeout(async () => {
                 await updateDoc(roomRef, { p1Choice: null, p2Choice: null });
@@ -798,18 +799,17 @@
         let p1Wins = false;
         if ((p1==='rock' && p2==='scissors') || (p1==='scissors' && p2==='paper') || (p1==='paper' && p2==='rock')) p1Wins = true;
         
-        // 이긴 사람이 선공(Blue), 진 사람이 후공(Red)
         const p1Color = p1Wins ? "blue" : "red";
         const p2Color = p1Wins ? "red" : "blue";
+        const startingTurn = p1Wins ? "player1" : "player2"; // 이긴 사람이 무조건 선공(첫 턴)
         
         await updateDoc(roomRef, { 
             status: "playing", 
-            turn: "blue", // 첫 턴은 항상 무조건 파란색(선공)부터 시작
+            turn: startingTurn,
             turnPhase: "selecting_sentence",
             p1Color: p1Color,
             p2Color: p2Color
         });
-        showToast(p1Wins ? "내가 승리! 선공(파란색)입니다." : "상대방 승리! 선공(파란색)을 가져갑니다.");
     }
 
     function renderInteractionPanel(data, isMyTurn, phase) {
@@ -851,7 +851,6 @@
                 html = `<div style="background:#d4edda; color:#155724; padding:15px; border-radius:10px; font-weight:bold; border:2px solid #28a745;">🎉 정답입니다! 빙고판에서 원하는 칸을 터치하세요.</div>`;
             }
         } else {
-            // 내가 출제자 입장일 때
             if (phase === 'selecting_sentence') {
                 if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
                 html = `
@@ -884,7 +883,6 @@
         
         interactionPanel.innerHTML = html;
 
-        // DOM 렌더링 후 타이머 시작
         if (phase === 'answering') {
             startTimer(data.currentQuestion.startTime, timeLimit, isMyTurn, data);
         }
@@ -913,7 +911,7 @@
 
     async function handleTimeOver(data) {
         showToast("⏳ 시간 초과! 기회가 넘어갑니다.");
-        const nextTurn = data.turn === 'blue' ? 'red' : 'blue';
+        const nextTurn = data.turn === 'player1' ? 'player2' : 'player1';
         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId), { turn: nextTurn, turnPhase: 'selecting_sentence', currentQuestion: null });
     }
 
@@ -945,7 +943,6 @@
         const data = window.currentGameData;
         const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
 
-        // 출제자 문제 전송
         const qItem = e.target.closest('.q-item');
         if (qItem) {
             const en = qItem.getAttribute('data-en'), ko = qItem.getAttribute('data-ko');
@@ -960,13 +957,11 @@
             await updateDoc(roomRef, { turnPhase: 'answering', currentQuestion: { en, ko, method, startTime: Date.now() } });
         }
 
-        // 답변자 정답 제출
         if (e.target.id === 'btn-submit-answer') {
             const userInput = document.getElementById('answer-input').value;
             verifyAnswer(userInput, data.currentQuestion.en, roomRef, data);
         }
 
-        // 음성 인식 
         if (e.target.id === 'btn-start-speak') startSpeechRecognition(data.currentQuestion.en, roomRef, data);
         if (e.target.id === 'btn-submit-speak') {
             const transcript = e.target.getAttribute('data-transcript');
@@ -987,7 +982,7 @@
             await updateDoc(roomRef, { turnPhase: 'selecting_cell' });
         } else {
             showToast(`❌ 오답입니다! 기회가 넘어갑니다.\n정답: ${correctAnswer}`);
-            const nextTurn = data.turn === 'blue' ? 'red' : 'blue';
+            const nextTurn = data.turn === 'player1' ? 'player2' : 'player1';
             await updateDoc(roomRef, { turn: nextTurn, turnPhase: 'selecting_sentence', currentQuestion: null });
         }
     }
@@ -1021,26 +1016,31 @@
             if (!window.currentGameData) return;
             const data = window.currentGameData;
             const index = e.target.getAttribute('data-index');
+            const myPlayerKey = amIPlayer1 ? "player1" : "player2";
 
             if (data.status !== "playing") return;
-            if (data.turn !== window.myColor) return showToast("내 차례가 아닙니다.");
+            if (data.turn !== myPlayerKey) return showToast("내 차례가 아닙니다.");
             if (data.turnPhase !== "selecting_cell") return showToast("아직 정답을 맞히지 않았습니다!");
             if (data.board[index] !== "") return showToast("이미 선택된 칸입니다.");
 
             const newBoard = [...data.board];
             newBoard[index] = window.myColor;
 
-            const winner = checkWin(newBoard);
-            const nextTurn = window.myColor === "blue" ? "red" : "blue";
-            let newStatus = winner ? "finished" : "playing";
+            const winnerColor = checkWin(newBoard);
+            let winnerKey = null;
+            if (winnerColor === "blue") winnerKey = data.p1Color === "blue" ? "player1" : "player2";
+            else if (winnerColor === "red") winnerKey = data.p1Color === "red" ? "player1" : "player2";
+            else if (winnerColor === "draw") winnerKey = "draw";
+
+            const nextTurn = myPlayerKey === "player1" ? "player2" : "player1";
+            let newStatus = winnerKey ? "finished" : "playing";
 
             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId), {
                 board: newBoard, turn: nextTurn, turnPhase: 'selecting_sentence',
-                currentQuestion: null, winner: winner, status: newStatus
+                currentQuestion: null, winner: winnerKey || null, status: newStatus
             });
             
-            // 내가 방금 두어서 이겼다면 명예의 전당 DB 업데이트
-            if (winner === window.myColor) {
+            if (winnerKey === myPlayerKey) {
                 recordWinToHallOfFame(data.unitId);
             }
         });
@@ -1073,10 +1073,10 @@
         } catch(e) { console.error("명예의 전당 업데이트 실패", e); }
     }
 
-    // 결과 애니메이션 오버레이 렌더링
     function showResultOverlay(data) {
         const isDraw = data.winner === "draw";
-        const amIWinner = (data.winner === window.myColor);
+        const myPlayerKey = amIPlayer1 ? "player1" : "player2";
+        const amIWinner = (data.winner === myPlayerKey);
         
         const titleEl = document.getElementById('result-title');
         const subTitleEl = document.getElementById('result-subtitle');
@@ -1098,6 +1098,7 @@
         
         resultOverlay.classList.add('show');
     }
+    
     document.getElementById('btn-close-result').addEventListener('click', () => {
         resultOverlay.classList.remove('show');
         resetGame();
