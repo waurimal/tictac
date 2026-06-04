@@ -95,7 +95,7 @@
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); color: white; display: flex;
             flex-direction: column; align-items: center; justify-content: center;
-            z-index: 1000; visibility: hidden; opacity: 0; transition: opacity 0.3s;
+            z-index: 9999; visibility: hidden; opacity: 0; transition: opacity 0.3s;
         }
         #rps-overlay.show, #result-overlay.show { visibility: visible; opacity: 1; }
         #result-trophy { font-size: 80px; margin-bottom: 20px; animation: bounce 1s infinite; }
@@ -702,15 +702,34 @@
         window.currentGameData = data;
         const myPlayerKey = amIPlayer1 ? "player1" : "player2";
         
+        // 1. 플레이어 이름(뱃지)은 항상 최우선으로 최신화
+        document.getElementById('player1-info').innerText = data.player1 ? data.player1.name : "대기 중...";
+        const p2Info = document.getElementById('player2-info');
+        if (data.player2) {
+            p2Info.innerText = data.player2.name;
+            p2Info.style.backgroundColor = "var(--red-color)";
+        } else {
+            p2Info.innerText = "대기 중...";
+            p2Info.style.backgroundColor = "#ccc";
+        }
+
+        const statusEl = document.getElementById('turn-status');
+        
+        // 2. 대기 상태 처리
         if (data.status === "waiting") {
-            document.getElementById('player1-info').innerText = data.player1 ? data.player1.name : "대기 중...";
-            document.getElementById('player2-info').innerText = "대기 중...";
-            document.getElementById('player2-info').style.backgroundColor = "#ccc";
-            document.getElementById('turn-status').innerText = "상대방을 기다리는 중입니다...";
+            statusEl.innerText = "상대방을 기다리는 중입니다...";
+            statusEl.style.backgroundColor = "#fff3cd";
+            statusEl.style.color = "#856404";
+            rpsOverlay.classList.remove('show');
             return;
         }
 
+        // 3. 가위바위보 상태 처리
         if (data.status === "rps_phase") {
+            statusEl.innerText = "가위바위보 진행 중...";
+            statusEl.style.backgroundColor = "#d1ecf1";
+            statusEl.style.color = "#0c5460";
+            
             rpsOverlay.classList.add('show');
             const myChoice = amIPlayer1 ? data.p1Choice : data.p2Choice;
             
@@ -731,24 +750,23 @@
             rpsOverlay.classList.remove('show');
         }
 
-        // 색상 동기화 (가위바위보 승패 기반)
+        // 4. 색상 동기화 (가위바위보 승패 기반으로 결정된 색상)
         window.myColor = amIPlayer1 ? data.p1Color : data.p2Color;
 
-        document.getElementById('player1-info').innerText = data.player1.name;
-        document.getElementById('player2-info').innerText = data.player2.name;
         document.getElementById('player1-info').className = `player-badge badge-${data.p1Color}`;
         document.getElementById('player2-info').className = `player-badge badge-${data.p2Color}`;
-        document.getElementById('player1-info').style.backgroundColor = ""; document.getElementById('player2-info').style.backgroundColor = "";
+        document.getElementById('player1-info').style.backgroundColor = ""; 
+        document.getElementById('player2-info').style.backgroundColor = "";
 
+        // 5. 보드판 렌더링
         data.board.forEach((val, index) => {
             const cell = cells[index];
             cell.className = "cell"; cell.innerText = "";
             if (val === "blue") { cell.classList.add("blue"); cell.innerText = "O"; } 
             else if (val === "red") { cell.classList.add("red"); cell.innerText = "X"; }
         });
-
-        const statusEl = document.getElementById('turn-status');
         
+        // 6. 게임 종료 상태 처리
         if (data.status === "finished") {
             interactionPanel.innerHTML = "";
             if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
@@ -767,7 +785,7 @@
             return;
         }
 
-        // 색상이 아닌 식별자로 완벽한 턴 계산
+        // 7. 게임 진행 중 (턴 계산 로직)
         const realMyTurn = (data.turn === myPlayerKey);
         const phase = data.turnPhase || 'selecting_cell';
         
@@ -782,6 +800,7 @@
             statusEl.style.color = "#383d41";
         }
 
+        // 상태가 변경되었을 때만 패널 렌더링 (입력 커서 튕김 방지)
         const phaseKey = data.turn + "_" + phase + "_" + (data.currentQuestion ? data.currentQuestion.ko + "_" + data.currentQuestion.method : "");
         if (window.lastPhaseKey !== phaseKey) {
             window.lastPhaseKey = phaseKey;
