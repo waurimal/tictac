@@ -267,7 +267,7 @@
         <div style="max-height: 250px; overflow-y: auto; border: 1px solid #eee; border-radius: 8px;">
             <table class="hof-table">
                 <thead>
-                    <tr><th width="15%">순위</th><th width="45%">소속/이름</th><th width="40%">승리 횟수</th></tr>
+                    <tr><th width="15%">순위</th><th width="45%">소속</th><th width="40%">승리 횟수</th></tr>
                 </thead>
                 <tbody id="hof-tbody">
                     <tr><td colspan="3" style="padding:20px; color:#999;">검색 버튼을 눌러주세요.</td></tr>
@@ -1190,7 +1190,7 @@
                 html += `
                     <tr>
                         <td><span class="rank-icon">${rankIcon}</span></td>
-                        <td>${r.grade}학년 ${r.classNum}반<br><b>${r.name}</b></td>
+                        <td>${r.grade}학년 ${r.classNum}반</td>
                         <td style="color:var(--blue-color); font-weight:bold; font-size:16px;">${r.wins}승</td>
                     </tr>
                 `;
