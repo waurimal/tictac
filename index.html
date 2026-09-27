@@ -34,19 +34,23 @@
             display: none !important;
         }
 
+        .home-split-grid.hidden {
+            display: none !important;
+        }
+
         /* 50:50 대칭 분할 레이아웃 */
         .home-split-grid {
-            display: grid !important;
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-            gap: 1.5rem !important;
-            align-items: stretch !important;
-            width: 100% !important;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1.5rem;
+            align-items: stretch;
+            width: 100%;
         }
 
         @media (max-width: 960px) {
             .home-split-grid {
-                grid-template-columns: 1fr !important;
-                gap: 1.2rem !important;
+                grid-template-columns: 1fr;
+                gap: 1.2rem;
             }
         }
 
@@ -805,13 +809,40 @@
 
         // 화면 전환 함수
         window.showScreen = (screenId) => {
-            ['screen-home', 'screen-game', 'screen-teacher'].forEach(id => {
+            const screens = ['screen-home', 'screen-game', 'screen-teacher'];
+            screens.forEach(id => {
                 const el = document.getElementById(id);
-                if (el) el.classList.add('hidden');
+                if (el) {
+                    el.classList.add('hidden');
+                    el.style.setProperty('display', 'none', 'important');
+                }
             });
+
+            // 상단 타이틀 헤더(.hdr) 숨김 처리: 인게임 화면에서는 헤더를 숨겨 게임 화면이 최상단에 바로 위치하도록 처리
+            const hdrEl = document.querySelector('.hdr');
+            if (hdrEl) {
+                if (screenId === 'screen-game') {
+                    hdrEl.classList.add('hidden');
+                    hdrEl.style.setProperty('display', 'none', 'important');
+                } else {
+                    hdrEl.classList.remove('hidden');
+                    hdrEl.style.removeProperty('display');
+                }
+            }
+
             const target = document.getElementById(screenId);
-            if (target) target.classList.remove('hidden');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (target) {
+                target.classList.remove('hidden');
+                target.style.removeProperty('display');
+                if (screenId === 'screen-home') {
+                    target.style.setProperty('display', 'grid', 'important');
+                } else if (screenId === 'screen-game') {
+                    target.style.setProperty('display', 'flex', 'important');
+                } else {
+                    target.style.setProperty('display', 'block', 'important');
+                }
+            }
+            window.scrollTo({ top: 0, behavior: 'instant' });
         };
 
         window.backToHome = () => {
