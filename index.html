@@ -1233,9 +1233,9 @@
 
             const p1Info = document.getElementById('player1-info');
             const p2Info = document.getElementById('player2-info');
-            p1Info.innerText = data.player1 ? `${data.player1.name} (Blue O)` : "대기 중...";
+            p1Info.innerText = data.player1 ? `${maskStudentName(data.player1.name)} (Blue O)` : "대기 중...";
             if (data.player2) {
-                p2Info.innerText = `${data.player2.name} (Red X)`;
+                p2Info.innerText = `${maskStudentName(data.player2.name)} (Red X)`;
                 p2Info.classList.remove('opacity-50');
             } else {
                 p2Info.innerText = "참여 대기 중...";
@@ -2033,7 +2033,7 @@
                             </div>
                             <div>
                                 <div class="font-black text-slate-800 text-xs flex items-center gap-1.5">
-                                    <span>${item.maskedName}</span>
+                                    <span>${window.WaurimalSanitize ? window.WaurimalSanitize(item.maskedName || maskStudentName(item.name || '선수')) : (item.maskedName || maskStudentName(item.name || '선수'))}</span>
                                     <span class="text-[10px] px-1.5 py-0.5 rounded font-bold bg-blue-100 text-blue-800">${item.effectiveWins}승</span>
                                 </div>
                                 <div class="text-[11px] text-slate-400 font-medium">
