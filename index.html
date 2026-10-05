@@ -816,6 +816,14 @@
 
         // 화면 전환 함수
         window.showScreen = (screenId) => {
+            if (screenId === 'screen-teacher' && (!window.WaurimalAuth || !window.WaurimalAuth.isAuthenticated())) {
+                if (typeof window.openTeacherAuthModal === 'function') {
+                    window.openTeacherAuthModal();
+                } else {
+                    alert('교사 인증이 필요합니다.');
+                }
+                return;
+            }
             const screens = ['screen-home', 'screen-game', 'screen-teacher'];
             screens.forEach(id => {
                 const el = document.getElementById(id);
@@ -2046,6 +2054,12 @@
         // ── 7. 교사 설정 모드 ──
         // ════════════════════════════════════════════════════════════════════
         window.openTeacherAuthModal = () => {
+            if (window.WaurimalAuth && window.WaurimalAuth.isAuthenticated()) {
+                document.getElementById('t-time-limit').value = globalSettings.timeLimit || 60;
+                document.getElementById('t-password').value = globalSettings.teacherPassword || "1234";
+                window.showScreen('screen-teacher');
+                return;
+            }
             document.getElementById('teacherPwInput').value = "";
             document.getElementById('modal-teacher-auth').classList.remove('hidden');
             setTimeout(() => { document.getElementById('teacherPwInput').focus(); }, 100);
@@ -2057,8 +2071,8 @@
 
         window.submitTeacherAuth = () => {
             const pw = document.getElementById('teacherPwInput').value.trim();
-            const waurimalPw = localStorage.getItem('waurimal_admin_pw');
-            if (pw === (globalSettings.teacherPassword || "1234") || pw === "1234" || pw === "0000" || pw === "4657" || pw === "wauri1234" || (waurimalPw && pw === waurimalPw)) {
+            const isValid = window.WaurimalAuth ? window.WaurimalAuth.authenticate(pw) : (pw === (localStorage.getItem('waurimal_admin_pw') || globalSettings.teacherPassword || "1234"));
+            if (isValid) {
                 closeTeacherAuthModal();
                 document.getElementById('t-time-limit').value = globalSettings.timeLimit || 60;
                 document.getElementById('t-password').value = globalSettings.teacherPassword || "1234";
@@ -2149,8 +2163,17 @@
 
             const updateData = { timeLimit: tLimit };
             if (newPw) {
+                if (newPw.length < 4) {
+                    window.showToast("비밀번호는 4자리 이상이어야 합니다.");
+                    return;
+                }
                 updateData.teacherPassword = newPw;
-                localStorage.setItem('waurimal_admin_pw', newPw);
+                globalSettings.teacherPassword = newPw;
+                if (window.WaurimalAuth) {
+                    window.WaurimalAuth.setPw(newPw);
+                } else {
+                    localStorage.setItem('waurimal_admin_pw', newPw);
+                }
             }
 
             try {
